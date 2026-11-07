@@ -816,24 +816,38 @@
     flex-wrap: wrap;
   }
 
+  .all-jpg-download-btn,
   .zip-download-btn {
     flex: 1;
-    min-width: 190px;
+    min-width: 175px;
     min-height: 46px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    background: var(--coral);
+    gap: 7px;
     color: #fff;
     border: none;
     border-radius: 11px;
-    padding: 10px 16px;
-    font-size: 0.86rem;
+    padding: 10px 14px;
+    font-size: 0.84rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 5px 14px rgba(232, 99, 60, 0.28);
     transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .all-jpg-download-btn {
+    background: var(--teal);
+    box-shadow: 0 5px 14px rgba(45, 125, 110, 0.26);
+  }
+
+  .all-jpg-download-btn:hover:not(:disabled) {
+    background: var(--teal-dark);
+    transform: translateY(-1px);
+  }
+
+  .zip-download-btn {
+    background: var(--coral);
+    box-shadow: 0 5px 14px rgba(232, 99, 60, 0.28);
   }
 
   .zip-download-btn:hover:not(:disabled) {
@@ -841,13 +855,21 @@
     transform: translateY(-1px);
   }
 
+  .all-jpg-download-btn:disabled,
   .zip-download-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
   }
 
+  .all-jpg-download-btn svg,
   .zip-download-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .batch-hint-line {
+    font-size: 0.69rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
 
   .batch-pdf-btn {
     min-height: 46px;
@@ -1436,6 +1458,7 @@
       flex-direction: column;
     }
 
+    .all-jpg-download-btn,
     .zip-download-btn,
     .batch-pdf-btn {
       width: 100%;
@@ -1668,15 +1691,24 @@
               <div class="progress-fill" id="batchProgressFill"></div>
             </div>
             <div class="batch-actions-row">
-              <button type="button" class="zip-download-btn" id="downloadZipBtn" disabled>
+              <button type="button" class="all-jpg-download-btn" id="downloadAllJpgBtn" disabled>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                <span id="downloadZipLabel">Download All Photos (.ZIP)</span>
+                <span id="downloadAllJpgLabel">Download All JPGs</span>
+              </button>
+              <button type="button" class="zip-download-btn" id="downloadZipBtn" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>
+                </svg>
+                <span id="downloadZipLabel">Download All (.ZIP)</span>
               </button>
               <button type="button" class="batch-pdf-btn" id="downloadBatchPdfBtn" disabled title="Download all batch photos in one PDF">
-                All-in-1 PDF
+                <span id="downloadBatchPdfLabel">Download All (PDF)</span>
               </button>
+            </div>
+            <div class="batch-hint-line">
+              <b>Tip:</b> Click <b>Download All JPGs</b> to save every photo separately (tap <em>Allow</em> once if your browser asks to download multiple files), or choose <b>.ZIP</b> / <b>PDF</b>.
             </div>
           </div>
 
@@ -1777,8 +1809,8 @@
         <span>Every photo automatically gets a pure white background, 600&times;800 px size, and &le;25 KB compression without manual clicks.</span>
       </div>
       <div>
-        <b>3. 1-Click ZIP Download</b>
-        <span>Tap <em>Download All Photos (.ZIP)</em> once to get the entire class ready for portal upload with original student names!</span>
+        <b>3. Download All (JPG / ZIP / PDF)</b>
+        <span>Click <em>Download All JPGs</em> to automatically save every student photo separately, or choose <em>.ZIP</em> or <em>PDF</em>!</span>
       </div>
     </div>
   </details>
@@ -1837,9 +1869,12 @@ const batchBanner = document.getElementById("batchBanner");
 const batchTitleText = document.getElementById("batchTitleText");
 const batchSubText = document.getElementById("batchSubText");
 const batchProgressFill = document.getElementById("batchProgressFill");
+const downloadAllJpgBtn = document.getElementById("downloadAllJpgBtn");
+const downloadAllJpgLabel = document.getElementById("downloadAllJpgLabel");
 const downloadZipBtn = document.getElementById("downloadZipBtn");
 const downloadZipLabel = document.getElementById("downloadZipLabel");
 const downloadBatchPdfBtn = document.getElementById("downloadBatchPdfBtn");
+const downloadBatchPdfLabel = document.getElementById("downloadBatchPdfLabel");
 
 const batchGridWrap = document.getElementById("batchGridWrap");
 const batchGrid = document.getElementById("batchGrid");
@@ -2256,6 +2291,7 @@ async function runBatchQueue(reprocessAll) {
   }
 
   updateWorkflow(2);
+  downloadAllJpgBtn.disabled = true;
   downloadZipBtn.disabled = true;
   downloadBatchPdfBtn.disabled = true;
 
@@ -2320,9 +2356,13 @@ function finishBatchProgressUI() {
   batchTitleText.textContent = `All ${doneItems.length} Photos Ready!`;
   batchSubText.textContent = `White BG · ${targetW}×${targetH} px · Total ${totalKB} KB`;
 
-  downloadZipBtn.disabled = doneItems.length === 0;
-  downloadBatchPdfBtn.disabled = doneItems.length === 0;
-  downloadZipLabel.textContent = `Download All ${doneItems.length} Photos (.ZIP)`;
+  const hasDone = doneItems.length > 0;
+  downloadAllJpgBtn.disabled = !hasDone;
+  downloadZipBtn.disabled = !hasDone;
+  downloadBatchPdfBtn.disabled = !hasDone;
+  downloadAllJpgLabel.textContent = `Download All ${doneItems.length} JPGs`;
+  downloadZipLabel.textContent = `Download All (.ZIP)`;
+  downloadBatchPdfLabel.textContent = `Download All (PDF)`;
 
   processingRow.style.display = "none";
   updateWorkflow(3);
@@ -2684,6 +2724,39 @@ dlPdf.addEventListener("click", async () => {
   pdf.save(`${item.baseName}_${targetW}x${targetH}.pdf`);
 });
 
+/* 1-Click Download All Separate JPGs Automatically */
+downloadAllJpgBtn.addEventListener("click", async () => {
+  const doneItems = batchItems.filter((x) => x.status === "done" && x.jpgBlob);
+  if (!doneItems.length) return;
+
+  const origText = downloadAllJpgLabel.textContent;
+  downloadAllJpgBtn.disabled = true;
+
+  try {
+    const usedNames = new Map();
+    for (let i = 0; i < doneItems.length; i++) {
+      const item = doneItems[i];
+      const baseKey = `${item.baseName}.jpg`;
+      const count = usedNames.get(baseKey) || 0;
+      const fileName = count > 0 ? `${item.baseName}_${count + 1}.jpg` : baseKey;
+      usedNames.set(baseKey, count + 1);
+
+      downloadAllJpgLabel.textContent = `Downloading JPG ${i + 1} / ${doneItems.length}…`;
+      downloadBlob(item.jpgBlob, fileName);
+
+      if (i < doneItems.length - 1) {
+        await new Promise((r) => setTimeout(r, 350));
+      }
+    }
+    downloadAllJpgLabel.textContent = `✓ Downloaded ${doneItems.length} JPGs`;
+    setTimeout(() => {
+      downloadAllJpgLabel.textContent = origText;
+    }, 2500);
+  } finally {
+    downloadAllJpgBtn.disabled = false;
+  }
+});
+
 /* 1-Click Download All as ZIP */
 downloadZipBtn.addEventListener("click", async () => {
   const doneItems = batchItems.filter((x) => x.status === "done" && x.jpgBlob);
@@ -2691,19 +2764,17 @@ downloadZipBtn.addEventListener("click", async () => {
 
   const origText = downloadZipLabel.textContent;
   downloadZipBtn.disabled = true;
-  downloadZipLabel.textContent = "Creating ZIP Archive…";
+  downloadZipLabel.textContent = "Creating ZIP…";
 
   try {
     const zip = new window.JSZip();
     const usedNames = new Map();
 
     doneItems.forEach((item) => {
-      let name = `${item.baseName}_${targetW}x${targetH}.jpg`;
-      const count = usedNames.get(name) || 0;
-      if (count > 0) {
-        name = `${item.baseName}_${count + 1}_${targetW}x${targetH}.jpg`;
-      }
-      usedNames.set(`${item.baseName}_${targetW}x${targetH}.jpg`, count + 1);
+      const baseKey = `${item.baseName}.jpg`;
+      const count = usedNames.get(baseKey) || 0;
+      const name = count > 0 ? `${item.baseName}_${count + 1}.jpg` : baseKey;
+      usedNames.set(baseKey, count + 1);
       zip.file(name, item.jpgBlob);
     });
 
@@ -2723,8 +2794,8 @@ downloadBatchPdfBtn.addEventListener("click", async () => {
   if (!doneItems.length) return;
 
   downloadBatchPdfBtn.disabled = true;
-  const prevLabel = downloadBatchPdfBtn.textContent;
-  downloadBatchPdfBtn.textContent = "Building PDF…";
+  const prevLabel = downloadBatchPdfLabel.textContent;
+  downloadBatchPdfLabel.textContent = "Building PDF…";
 
   try {
     const { jsPDF } = window.jspdf;
@@ -2742,7 +2813,7 @@ downloadBatchPdfBtn.addEventListener("click", async () => {
     alert("Could not generate batch PDF: " + err.message);
   } finally {
     downloadBatchPdfBtn.disabled = false;
-    downloadBatchPdfBtn.textContent = prevLabel;
+    downloadBatchPdfLabel.textContent = prevLabel;
   }
 });
 
