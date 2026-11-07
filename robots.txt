@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://iamtayyabnawaz.github.io/PicTool/sitemap.xml
