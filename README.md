@@ -1,11 +1,13 @@
-# Pic-Tool — Photo Resizer & White Background Tool
+# Resize, Compress & Change Background — Pic-Tool
 
-A fast, 100% client-side **AI Photo Resizer & White Background Tool** built by **Tayyab Nawaz**.
+A fast, mobile-friendly, 100% client-side **AI Photo Resizer, Compressor & White Background Tool** with **1-Click Full-Class Batch Processing**, built by **Tayyab Nawaz**.
 
-## Features
+**Live Website:** https://iamtayyabnawaz.github.io/Pic-Tool/
 
-- **Automatic AI White Background:** Uses Google MediaPipe `ImageSegmenter` directly in your browser to cleanly separate portraits from messy backgrounds and place them on a crisp `#FFFFFF` backdrop (with optional smooth edge feathering and passport blue/gray swatches).
-- **Portal-Ready Presets & Custom Dimensions:** Defaults automatically to **600 × 800 px** and **≤ 25 KB** (ideal for PECTAA / IBS & official registration portals), plus built-in presets for **Passport (2×2 in)**, **ID / CNIC (35×45 mm)**, **High-Res Print**, and **Custom Dimensions**.
-- **Smart Binary-Search Compression:** Maximizes visual clarity while strictly staying at or below your target KB size limit.
-- **Multi-Format Export:** Instant download as **JPG**, **PNG**, or **PDF**, with batch photo queue support.
-- **100% On-Device Privacy:** Photos are processed locally in your browser and are never uploaded to any external server.
+## Key Features
+
+- **1-Click Class Batch Mode:** Upload 1 photo or an entire class folder/batch (20–100+ student photos at once). Every photo automatically gets a pure white background, exact dimensions (`600 × 800 px`), and compressed file size (`≤ 25 KB`), ready to download together in a single **1-Click `.ZIP`** or **All-in-1 PDF** while preserving student filenames!
+- **Mobile User-Friendly Design:** Touch-friendly buttons, collapsible mobile settings bar, compact above-the-fold layout, and sequential low-RAM batch processing so large batches run smoothly even on phones.
+- **Automatic AI Background Cutout:** Powered by Google MediaPipe `ImageSegmenter` directly in your browser with smooth edge feathering and White / Passport Blue / Gray / Original options.
+- **Portal-Ready Presets & Custom Dimensions:** Defaults to **600 × 800 px** and **≤ 25 KB** (PECTAA / IBS portal standard), plus Passport (`600×600`), ID/CNIC (`413×531`), High-Res Print, and Custom Size/KB controls.
+- **100% On-Device Privacy:** Photos never leave your phone or computer.
