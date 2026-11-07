@@ -2,15 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Photo Resizer &amp; White Background Tool | Tayyab Nawaz</title>
-<meta name="description" content="Free automatic AI photo resizer and white background tool. Resize photos to 600×800 px, compress under 25 KB, and download as JPG, PNG, or PDF — 100% private in your browser.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Resize, Compress &amp; Change Background | Tayyab Nawaz</title>
+<meta name="description" content="Resize, Compress & Change Background in 1 click. Upload single photos or a full class batch — automatic AI white background, 600×800 px, ≤25 KB, and 1-click ZIP download.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
 <script type="module">
   import { FilesetResolver, ImageSegmenter } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs";
 
@@ -97,7 +99,8 @@
     --cream: #F7F4ED;
     --cream-dark: #EFEBE0;
     --teal: #2D7D6E;
-    --teal-dark: #225F54;
+    --teal-dark: #215E53;
+    --teal-soft: #E5F3EF;
     --coral: #E8633C;
     --coral-dark: #C94F2C;
     --ink: #1A1A1A;
@@ -107,13 +110,17 @@
     --ok: #2D7D6E;
     --warn: #C94F2C;
     --radius: 15px;
-    --shadow: 0 8px 24px -8px rgba(27, 58, 75, 0.14);
-    scroll-padding-top: 12px;
+    --shadow: 0 8px 24px -8px rgba(27, 58, 75, 0.13);
   }
 
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   html { scroll-behavior: smooth; }
   html, body { margin: 0; padding: 0; }
+
   body {
     background: var(--cream);
     color: var(--ink);
@@ -133,12 +140,14 @@
     inset: 0;
     z-index: -1;
     background-image:
-      radial-gradient(circle at 12% 8%, rgba(45, 125, 110, 0.07), transparent 40%),
-      radial-gradient(circle at 90% 85%, rgba(232, 99, 60, 0.07), transparent 40%);
+      radial-gradient(circle at 12% 8%, rgba(45, 125, 110, 0.07), transparent 42%),
+      radial-gradient(circle at 90% 85%, rgba(232, 99, 60, 0.07), transparent 42%);
     pointer-events: none;
   }
 
-  a { color: inherit; }
+  button, select, input, summary {
+    font-family: inherit;
+  }
 
   button:focus-visible,
   a:focus-visible,
@@ -154,81 +163,75 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 12px clamp(16px, 4vw, 40px);
+    gap: 10px;
+    padding: 10px clamp(14px, 4vw, 38px);
     border-bottom: 1px solid var(--line);
-    background: rgba(247, 244, 237, 0.88);
+    background: rgba(247, 244, 237, 0.92);
     backdrop-filter: blur(8px);
     position: sticky;
     top: 0;
-    z-index: 20;
-    flex-wrap: wrap;
+    z-index: 30;
   }
 
   .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
   }
 
   .brand-mark {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
     background: var(--navy);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 3px 10px rgba(27, 58, 75, 0.2);
+    box-shadow: 0 3px 10px rgba(27, 58, 75, 0.18);
   }
 
-  .brand-mark svg { width: 22px; height: 22px; }
+  .brand-mark svg { width: 20px; height: 20px; }
 
   .brand-text h1 {
     font-family: 'Fraunces', serif;
-    font-weight: 600;
-    font-size: 1.18rem;
+    font-weight: 700;
+    font-size: 1.08rem;
     margin: 0;
     color: var(--navy);
     letter-spacing: -0.01em;
+    white-space: nowrap;
   }
 
   .brand-text span {
     display: block;
-    font-size: 0.68rem;
+    font-size: 0.63rem;
     color: var(--muted);
     font-family: 'JetBrains Mono', monospace;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    margin-top: 1px;
   }
 
   .header-badge {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     background: var(--navy);
     color: var(--cream);
-    padding: 8px 15px;
+    padding: 7px 12px;
     border-radius: 999px;
     font-weight: 600;
-    font-size: 0.8rem;
-    text-decoration: none;
-    transition: transform 0.15s ease, background 0.15s ease;
+    font-size: 0.74rem;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
-  .header-badge:hover {
-    background: var(--teal);
-    transform: translateY(-1px);
-  }
-
-  .header-badge svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .header-badge svg { width: 14px; height: 14px; flex-shrink: 0; }
 
   /* ===== Hero ===== */
   .hero {
-    padding: 16px clamp(16px, 4vw, 40px) 6px;
+    padding: 14px clamp(14px, 4vw, 38px) 6px;
     max-width: 1280px;
     margin: 0 auto;
     text-align: center;
@@ -236,50 +239,50 @@
 
   .eyebrow {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.11em;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--teal);
     font-weight: 700;
     margin-bottom: 6px;
     display: inline-block;
     border: 1px solid var(--teal);
-    padding: 3px 12px;
+    padding: 3px 11px;
     border-radius: 999px;
-    background: rgba(45, 125, 110, 0.05);
+    background: rgba(45, 125, 110, 0.06);
   }
 
   .hero h2 {
     font-family: 'Fraunces', serif;
     font-weight: 700;
-    font-size: clamp(1.5rem, 3vw, 2.15rem);
-    line-height: 1.12;
+    font-size: clamp(1.38rem, 3.4vw, 2.2rem);
+    line-height: 1.14;
     margin: 2px 0 6px;
     color: var(--navy);
     letter-spacing: -0.01em;
   }
 
   .hero p.lead {
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     color: var(--muted);
-    max-width: 620px;
+    max-width: 660px;
     margin: 0 auto;
   }
 
   .spec-pills {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
     flex-wrap: wrap;
-    margin-top: 10px;
+    margin-top: 9px;
   }
 
   .spec-pill {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     background: var(--paper);
     border: 1px solid var(--line);
-    padding: 4px 10px;
+    padding: 4px 9px;
     border-radius: 8px;
     color: var(--navy);
     font-weight: 500;
@@ -288,19 +291,19 @@
   .spec-pill b { color: var(--coral); }
 
   .stats-strip {
-    display: flex;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 175px));
+    gap: 8px;
     justify-content: center;
-    flex-wrap: wrap;
-    margin-top: 10px;
+    margin: 10px auto 0;
+    max-width: 560px;
   }
 
   .stat-box {
     background: var(--paper);
     border: 1px solid var(--line);
-    border-radius: 11px;
-    padding: 8px 18px;
-    min-width: 135px;
+    border-radius: 10px;
+    padding: 7px 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -310,15 +313,15 @@
   .stat-num {
     font-family: 'Fraunces', serif;
     font-weight: 700;
-    font-size: 1.18rem;
+    font-size: 1.08rem;
     color: var(--navy);
     line-height: 1.05;
   }
 
   .stat-label {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 0.04em;
+    font-size: 0.56rem;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     color: var(--muted);
     text-align: center;
@@ -329,7 +332,7 @@
     max-width: 1420px;
     width: 100%;
     margin: 0 auto;
-    padding: 12px clamp(14px, 3vw, 32px) 24px;
+    padding: 10px clamp(12px, 3vw, 30px) 28px;
     flex: 1;
   }
 
@@ -338,80 +341,109 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    max-width: 780px;
-    margin: 0 auto 14px;
-    padding: 9px 18px;
-    background: rgba(255, 255, 255, 0.85);
+    gap: 10px;
+    max-width: 760px;
+    margin: 0 auto 12px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.88);
     border: 1px solid var(--line);
-    border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(27, 58, 75, 0.045);
+    border-radius: 13px;
   }
 
   .workflow-step {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 7px;
     color: var(--muted);
     opacity: 0.72;
-    transition: opacity 0.2s ease, color 0.2s ease;
   }
 
   .workflow-step b {
     display: block;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     color: var(--navy);
   }
 
   .workflow-step small {
     display: block;
-    font-size: 0.65rem;
-    margin-top: 1px;
+    font-size: 0.62rem;
   }
 
   .step-number {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     border: 1px solid var(--line);
-    font-size: 0.76rem;
+    font-size: 0.73rem;
     font-weight: 800;
     background: #fff;
     flex-shrink: 0;
   }
 
   .workflow-step.is-current,
-  .workflow-step.is-done {
-    opacity: 1;
-  }
+  .workflow-step.is-done { opacity: 1; }
 
   .workflow-step.is-current .step-number {
     background: var(--teal);
     border-color: var(--teal);
     color: #fff;
-    box-shadow: 0 0 0 4px rgba(45, 125, 110, 0.14);
+    box-shadow: 0 0 0 3px rgba(45, 125, 110, 0.15);
   }
 
   .workflow-step.is-done .step-number {
-    background: #E3F2ED;
+    background: var(--teal-soft);
     border-color: #B9D9CD;
-    color: #28695F;
+    color: var(--teal-dark);
   }
 
   .step-connector {
     height: 1px;
-    width: clamp(18px, 5vw, 60px);
+    width: clamp(14px, 4vw, 50px);
     background: var(--line);
+  }
+
+  /* Mobile Quick Settings Toggle Bar (shown on <=1040px) */
+  .mobile-settings-toggle {
+    display: none;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 11px 14px;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--navy);
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(27, 58, 75, 0.05);
+  }
+
+  .mobile-settings-toggle .ms-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mobile-settings-toggle .ms-summary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--teal);
+    background: var(--teal-soft);
+    padding: 3px 8px;
+    border-radius: 999px;
   }
 
   /* 3-Column Balanced Grid */
   .tool-grid {
     display: grid;
-    grid-template-columns: minmax(250px, 0.85fr) minmax(360px, 1.4fr) minmax(260px, 0.9fr);
+    grid-template-columns: minmax(250px, 0.82fr) minmax(380px, 1.55fr) minmax(255px, 0.85fr);
     gap: 14px;
-    align-items: stretch;
+    align-items: start;
   }
 
   .panel {
@@ -422,43 +454,39 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: box-shadow 0.18s ease, border-color 0.18s ease;
-  }
-
-  @media (hover: hover) {
-    .panel:hover {
-      border-color: #C9D8D3;
-      box-shadow: 0 10px 26px rgba(27, 58, 75, 0.09);
-    }
   }
 
   .panel-head {
     padding: 12px 16px 10px;
     border-bottom: 1px dashed var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
 
   .panel-head .label {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.68rem;
+    font-size: 0.66rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
+    display: block;
   }
 
   .panel-head h3 {
     font-family: 'Fraunces', serif;
     margin: 2px 0 0;
     color: var(--navy);
-    font-size: 1.06rem;
+    font-size: 1.04rem;
   }
 
-  /* ===== Left Panel: Settings & Presets ===== */
+  /* ===== Settings Panel ===== */
   .settings-body {
     padding: 12px 16px 14px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    flex: 1;
   }
 
   .field-group {
@@ -468,7 +496,7 @@
   }
 
   .field-label {
-    font-size: 0.74rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--navy);
     display: flex;
@@ -478,7 +506,7 @@
 
   .field-label span.hint {
     font-family: 'JetBrains Mono', monospace;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.68rem;
     color: var(--teal);
   }
@@ -486,13 +514,13 @@
   select,
   input[type="number"] {
     width: 100%;
+    min-height: 40px;
     padding: 8px 10px;
     border-radius: 9px;
     border: 1px solid var(--line);
     background: var(--cream);
     color: var(--ink);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 500;
   }
 
@@ -505,47 +533,47 @@
 
   .dim-sep {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: var(--muted);
     font-weight: 700;
   }
 
   input[type="range"] {
     width: 100%;
+    height: 28px;
     accent-color: var(--teal);
     cursor: pointer;
-    margin: 2px 0;
+    margin: 0;
   }
 
   .bg-swatches {
     display: flex;
-    gap: 7px;
+    gap: 8px;
     align-items: center;
     flex-wrap: wrap;
   }
 
   .swatch-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
     border: 2px solid var(--line);
     cursor: pointer;
     padding: 0;
-    position: relative;
     transition: transform 0.12s ease, border-color 0.12s ease;
   }
 
   .swatch-btn.active {
     border-color: var(--teal);
     box-shadow: 0 0 0 2px rgba(45, 125, 110, 0.25);
-    transform: scale(1.06);
+    transform: scale(1.05);
   }
 
   .swatch-orig {
-    font-size: 0.68rem;
-    font-weight: 600;
+    font-size: 0.72rem;
+    font-weight: 700;
     width: auto;
-    padding: 0 9px;
+    padding: 0 11px;
     background: var(--cream);
     color: var(--navy);
   }
@@ -555,29 +583,46 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 7px 10px;
+    min-height: 42px;
+    padding: 8px 11px;
     border-radius: 9px;
     background: #FAF8F3;
     border: 1px solid #EAE4D6;
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--navy);
     cursor: pointer;
   }
 
   .toggle-row input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     accent-color: var(--teal);
     cursor: pointer;
   }
 
+  .reprocess-batch-btn {
+    display: none;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    min-height: 42px;
+    padding: 9px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .reprocess-batch-btn.visible { display: block; }
+  .reprocess-batch-btn:hover { background: var(--teal); }
+
   .reset-defaults-btn {
-    margin-top: auto;
     background: transparent;
     border: 1px dashed var(--line);
     color: var(--muted);
     border-radius: 9px;
+    min-height: 38px;
     padding: 7px 10px;
     font-size: 0.74rem;
     font-weight: 600;
@@ -590,9 +635,8 @@
     background: var(--cream);
   }
 
-  /* ===== Center Panel: Dropzone & Preview ===== */
+  /* ===== Center Panel: Dropzone, Single Preview & Full Class Batch ===== */
   .dropzone {
-    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -608,21 +652,20 @@
   }
 
   .dz-inner {
-    padding: 32px 24px;
+    padding: 28px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    cursor: pointer;
     flex: 1;
   }
 
   .dz-icon {
-    width: 56px;
-    height: 56px;
+    width: 58px;
+    height: 58px;
     margin: 0 auto 12px;
-    border-radius: 15px;
+    border-radius: 16px;
     background: var(--cream);
     border: 1.5px dashed var(--teal);
     display: flex;
@@ -631,14 +674,14 @@
   }
 
   .dz-icon svg {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     color: var(--teal);
   }
 
   .dz-inner h3 {
     font-family: 'Fraunces', serif;
-    font-size: 1.2rem;
+    font-size: 1.22rem;
     margin: 0 0 6px;
     color: var(--navy);
   }
@@ -647,59 +690,227 @@
     color: var(--muted);
     font-size: 0.84rem;
     margin: 0 0 16px;
-    max-width: 310px;
+    max-width: 360px;
+  }
+
+  .upload-btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
   }
 
   .pick-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
     background: var(--teal);
     color: #fff;
     border: none;
-    padding: 10px 22px;
+    min-height: 46px;
+    padding: 11px 20px;
     border-radius: 999px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.86rem;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(45, 125, 110, 0.22);
     transition: background 0.15s ease, transform 0.15s ease;
   }
 
-  .pick-btn:hover {
-    background: var(--teal-dark);
-    transform: translateY(-1px);
+  .pick-btn:hover { background: var(--teal-dark); transform: translateY(-1px); }
+
+  .pick-btn.batch-btn {
+    background: var(--navy);
+    box-shadow: 0 4px 12px rgba(27, 58, 75, 0.18);
+  }
+
+  .pick-btn.batch-btn:hover { background: var(--coral); }
+
+  .pick-btn svg { width: 17px; height: 17px; flex-shrink: 0; }
+
+  .batch-tip-pill {
+    margin-top: 14px;
+    font-size: 0.73rem;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-weight: 600;
   }
 
   input[type="file"] { display: none; }
 
-  /* Preview State */
-  .preview-wrap {
+  /* ===== Workspace Active Area (Single + Batch) ===== */
+  .workspace-active {
     display: none;
-    padding: 14px 16px;
+    padding: 14px;
     flex-direction: column;
-    height: 100%;
+    gap: 12px;
   }
 
-  .preview-wrap.active {
+  .workspace-active.active {
     display: flex;
+  }
+
+  /* Batch Summary & 1-Click ZIP Banner */
+  .batch-banner {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: #F6FAF8;
+    border: 1.5px solid #BBDAD0;
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .batch-banner.active {
+    display: flex;
+  }
+
+  .batch-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .batch-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .batch-title-wrap strong {
+    font-size: 0.88rem;
+    color: var(--navy);
+  }
+
+  .batch-title-wrap span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--teal-dark);
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 8px;
+    background: #DCEAE5;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--teal), var(--coral));
+    border-radius: 999px;
+    transition: width 0.2s ease;
+  }
+
+  .batch-actions-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .zip-download-btn {
+    flex: 1;
+    min-width: 190px;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--coral);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 10px 16px;
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 5px 14px rgba(232, 99, 60, 0.28);
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
+
+  .zip-download-btn:hover:not(:disabled) {
+    background: var(--coral-dark);
+    transform: translateY(-1px);
+  }
+
+  .zip-download-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .zip-download-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .batch-pdf-btn {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .batch-pdf-btn:hover:not(:disabled) { background: var(--teal); }
+  .batch-pdf-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Before / After Inspector */
+  .inspector-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .inspector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.76rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .inspector-header strong {
+    color: var(--navy);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 240px;
   }
 
   .preview-container {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
     align-items: start;
-    flex: 1;
   }
 
   .preview-card {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
   }
 
   .preview-card h4 {
     margin: 0;
     text-align: center;
-    font-size: 0.82rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: var(--navy);
     font-family: 'JetBrains Mono', monospace;
@@ -710,7 +921,7 @@
   .preview-img-frame {
     width: 100%;
     aspect-ratio: 3 / 4;
-    max-height: 310px;
+    max-height: 290px;
     border: 1px solid var(--line);
     border-radius: 10px;
     background:
@@ -718,8 +929,8 @@
       linear-gradient(-45deg, #f3f0e8 25%, transparent 25%),
       linear-gradient(45deg, transparent 75%, #f3f0e8 75%),
       linear-gradient(-45deg, transparent 75%, #f3f0e8 75%);
-    background-size: 16px 16px;
-    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-size: 14px 14px;
+    background-position: 0 0, 0 7px, 7px -7px, -7px 0;
     background-color: #fff;
     display: flex;
     align-items: center;
@@ -732,7 +943,6 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    object-position: center;
     display: block;
   }
 
@@ -740,17 +950,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 9px;
-    color: var(--muted);
+    gap: 8px;
+    color: var(--teal-dark);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem;
-    padding: 10px 8px 4px;
+    font-size: 0.76rem;
+    padding: 6px 8px;
+    background: var(--teal-soft);
+    border-radius: 8px;
   }
 
   .spinner {
     width: 14px;
     height: 14px;
-    border: 2px solid var(--line);
+    border: 2px solid rgba(45, 125, 110, 0.25);
     border-top-color: var(--teal);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -759,81 +971,165 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* Batch Thumbnail Grid */
+  .batch-grid-wrap {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px dashed var(--line);
+    padding-top: 10px;
+  }
+
+  .batch-grid-wrap.active {
+    display: flex;
+  }
+
+  .batch-grid-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--navy);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .batch-grid-label small {
+    font-weight: 500;
+    color: var(--muted);
+  }
+
+  .batch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+    gap: 9px;
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+
+  .batch-card {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    background: #FCFBF8;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    transition: border-color 0.14s ease, transform 0.14s ease;
+  }
+
+  .batch-card.selected {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 2px rgba(45, 125, 110, 0.2);
+    background: #fff;
+  }
+
+  .batch-thumb {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #fff;
+    border: 1px solid #EAE4D6;
+    border-radius: 7px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .batch-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .batch-kb-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: rgba(27, 58, 75, 0.86);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 5px;
+  }
+
+  .batch-kb-badge.done { background: rgba(45, 125, 110, 0.92); }
+
+  .batch-card-name {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .batch-card-dl {
+    width: 100%;
+    min-height: 28px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--cream);
+    color: var(--navy);
+    font-size: 0.67rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .batch-card-dl:hover:not(:disabled) {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+  }
+
+  .batch-card-dl:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* Toolbar Bottom Actions */
   .photo-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
     flex-wrap: wrap;
-    margin-top: 10px;
     padding-top: 8px;
     border-top: 1px solid #EFEBE0;
   }
 
-  .change-photo {
-    font-size: 0.78rem;
-    color: var(--teal);
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: underline;
-    background: none;
-    border: none;
-    padding: 6px 2px;
-  }
-
-  .queue-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .queue-position {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-align: center;
-    padding: 0 4px;
-  }
-
-  .nav-btn {
-    border: 0;
+  .action-link-btn {
+    min-height: 38px;
+    padding: 7px 12px;
     border-radius: 8px;
-    background: var(--teal);
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.74rem;
-    padding: 7px 11px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .nav-btn.secondary {
-    background: var(--cream-dark);
+    border: 1px solid var(--line);
+    background: var(--cream);
     color: var(--navy);
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
   }
 
-  .nav-btn:hover:not(:disabled) {
-    filter: brightness(0.93);
+  .action-link-btn:hover {
+    border-color: var(--teal);
+    color: var(--teal-dark);
   }
 
-  .nav-btn:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
+  .action-link-btn.danger:hover {
+    border-color: var(--coral);
+    color: var(--coral-dark);
   }
 
-  /* ===== Right Panel: Specifications & Downloads ===== */
+  /* ===== Right Panel: Specifications & Single Downloads ===== */
   .receipt-body {
     padding: 10px 16px;
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
   }
 
   .receipt-rows {
     display: flex;
     flex-direction: column;
-    gap: 2px;
   }
 
   .r-row {
@@ -851,19 +1147,18 @@
   .r-row .v {
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--ink);
     text-align: right;
   }
   .r-row .v.good { color: var(--ok); }
   .r-row .v.warn { color: var(--warn); }
-  .r-row .v.muted-val { color: var(--muted); font-weight: 500; }
 
   .status-chip {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 0.75rem;
+    gap: 4px;
+    font-size: 0.74rem;
     font-weight: 700;
     color: var(--ok);
   }
@@ -872,16 +1167,16 @@
   .status-chip svg { width: 14px; height: 14px; }
 
   .empty-receipt {
-    padding: 22px 12px;
+    padding: 20px 10px;
     text-align: center;
     color: var(--muted);
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     line-height: 1.5;
   }
 
   .empty-receipt svg {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     opacity: 0.45;
     margin: 0 auto 8px;
     display: block;
@@ -889,15 +1184,14 @@
 
   .receipt-foot {
     border-top: 1px dashed var(--line);
-    padding: 12px 16px 14px;
-    margin-top: auto;
+    padding: 12px 14px 14px;
     background: #FCFBF8;
   }
 
   .download-label {
     text-align: center;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -908,43 +1202,49 @@
   .download-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 7px;
+    gap: 8px;
   }
 
   .dl-btn {
+    min-height: 48px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    background: var(--cream);
-    border: 1px solid var(--line);
-    color: var(--navy);
-    padding: 10px 6px;
+    gap: 2px;
+    background: var(--teal);
+    border: 1px solid var(--teal);
+    color: #fff;
+    padding: 8px 6px;
     border-radius: 10px;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.15s ease;
   }
 
+  .dl-btn.alt {
+    background: var(--cream);
+    border-color: var(--line);
+    color: var(--navy);
+  }
+
   .dl-btn small {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 500;
-    opacity: 0.75;
+    opacity: 0.88;
   }
 
   .dl-btn:hover:not(:disabled) {
     background: var(--coral);
     color: #fff;
     border-color: var(--coral);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(232, 99, 60, 0.25);
+    transform: translateY(-1px);
   }
 
   .dl-btn:disabled {
-    opacity: 0.45;
+    opacity: 0.42;
     cursor: not-allowed;
     transform: none;
   }
@@ -955,13 +1255,13 @@
     margin: 14px auto 0;
     border: 1px solid var(--line);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.85);
     font-size: 0.8rem;
   }
 
   .quick-help summary {
     cursor: pointer;
-    padding: 11px 16px;
+    padding: 12px 16px;
     font-weight: 700;
     color: var(--navy);
     list-style: none;
@@ -980,8 +1280,8 @@
   .help-content {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    padding: 0 16px 14px;
+    gap: 10px;
+    padding: 0 14px 14px;
   }
 
   .help-content div {
@@ -999,7 +1299,7 @@
   .hint-note {
     max-width: 980px;
     margin: 10px auto 0;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--muted);
     text-align: center;
     line-height: 1.45;
@@ -1011,8 +1311,8 @@
 
   footer {
     text-align: center;
-    padding: 14px 18px 20px;
-    font-size: 0.76rem;
+    padding: 14px 16px 22px;
+    font-size: 0.75rem;
     color: var(--muted);
     border-top: 1px solid var(--line);
     background: rgba(247, 244, 237, 0.6);
@@ -1020,36 +1320,141 @@
 
   footer strong { color: var(--navy); }
 
-  /* Responsive Breakpoints */
+  /* ===== Mobile-First Responsive Layout ===== */
   @media (max-width: 1040px) {
+    .mobile-settings-toggle {
+      display: flex;
+    }
+
     .tool-grid {
       grid-template-columns: 1fr;
+      gap: 12px;
     }
-    .dropzone {
-      min-height: 260px;
+
+    /* Put Settings right under the mobile toggle when expanded, otherwise hidden so Upload is immediately at the top! */
+    #settingsPanel {
+      display: none;
+      order: 1;
     }
-    .tool-grid > .panel:nth-child(2) { order: 1; }
-    .tool-grid > .panel:nth-child(3) { order: 2; }
-    .tool-grid > .panel:nth-child(1) { order: 3; }
+
+    #settingsPanel.mobile-open {
+      display: flex;
+    }
+
+    #uploadPanel { order: 2; }
+    #specsPanel { order: 3; }
+
+    .dropzone { min-height: 240px; }
   }
 
-  @media (max-width: 700px) {
-    .workflow-bar {
+  @media (max-width: 640px) {
+    header {
+      padding: 9px 12px;
+    }
+
+    .brand-mark { width: 32px; height: 32px; }
+    .brand-text h1 { font-size: 0.98rem; }
+    .brand-text span { font-size: 0.58rem; }
+    .header-badge {
+      padding: 6px 9px;
+      font-size: 0.68rem;
+    }
+    .header-badge span.hide-xs { display: none; }
+
+    .hero {
+      padding: 10px 12px 4px;
+    }
+
+    .hero h2 {
+      font-size: 1.32rem;
+    }
+
+    .hero p.lead {
+      font-size: 0.79rem;
+    }
+
+    .spec-pills {
+      margin-top: 7px;
+      gap: 5px;
+    }
+
+    .spec-pill {
+      font-size: 0.63rem;
+      padding: 3px 7px;
+    }
+
+    .stats-strip {
+      margin-top: 8px;
       gap: 6px;
-      padding: 8px 10px;
     }
-    .workflow-step b { font-size: 0.7rem; }
-    .workflow-step small { font-size: 0.58rem; white-space: nowrap; }
-    .step-number { width: 24px; height: 24px; font-size: 0.7rem; }
-    .step-connector { width: 12px; }
-    .help-content { grid-template-columns: 1fr; }
-    .preview-container { gap: 8px; }
-    .preview-img-frame { max-height: 260px; }
+
+    .stat-box {
+      padding: 5px 4px;
+    }
+
+    .stat-num { font-size: 0.95rem; }
+    .stat-label { font-size: 0.5rem; }
+
+    main {
+      padding: 8px 10px 24px;
+    }
+
+    .workflow-bar {
+      padding: 7px 8px;
+      gap: 5px;
+      margin-bottom: 9px;
+    }
+
+    .workflow-step { gap: 5px; }
+    .workflow-step b { font-size: 0.68rem; }
+    .workflow-step small { display: none; }
+    .step-number { width: 22px; height: 22px; font-size: 0.66rem; }
+    .step-connector { flex: 1; max-width: 28px; }
+
+    .dz-inner {
+      padding: 22px 14px;
+    }
+
+    .upload-btn-group {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .pick-btn {
+      width: 100%;
+    }
+
+    .workspace-active {
+      padding: 10px;
+    }
+
+    .preview-img-frame {
+      max-height: 225px;
+    }
+
+    .batch-actions-row {
+      flex-direction: column;
+    }
+
+    .zip-download-btn,
+    .batch-pdf-btn {
+      width: 100%;
+    }
+
+    .batch-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .help-content {
+      grid-template-columns: 1fr;
+    }
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after { transition: none !important; animation: none !important; }
+  @media (max-width: 380px) {
+    .batch-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 </style>
 </head>
@@ -1068,7 +1473,7 @@
     </div>
     <div class="brand-text">
       <h1>Tayyab Nawaz</h1>
-      <span>Photo Spec Tool</span>
+      <span>Photo Spec &amp; Batch Tool</span>
     </div>
   </div>
 
@@ -1076,34 +1481,34 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    100% Private &middot; Runs in Browser
+    100% Private <span class="hide-xs">&middot; In-Browser</span>
   </div>
 </header>
 
 <section class="hero">
-  <span class="eyebrow">Free &middot; Auto AI &middot; No Login</span>
-  <h2>Photo Resizer &amp; White Background Tool</h2>
-  <p class="lead">Automatically replace backgrounds with clean white, resize to exact dimensions, and compress under portal limits.</p>
+  <span class="eyebrow">Free &middot; Auto AI &middot; Class Batch Ready</span>
+  <h2>Resize, Compress &amp; Change Background</h2>
+  <p class="lead">Upload one photo or an entire class batch — get a clean white background, exact dimensions, and compressed KB size in 1 click.</p>
 
   <div class="spec-pills">
-    <span class="spec-pill">Target <b id="pillDim">600 &times; 800 px</b></span>
-    <span class="spec-pill">Max Size <b id="pillKb">&le; 25 KB</b></span>
-    <span class="spec-pill">Format <b>JPG / PNG / PDF</b></span>
-    <span class="spec-pill">Privacy <b>On-Device</b></span>
+    <span class="spec-pill">Size <b id="pillDim">600 &times; 800 px</b></span>
+    <span class="spec-pill">Limit <b id="pillKb">&le; 25 KB</b></span>
+    <span class="spec-pill">Batch <b>1-Click ZIP</b></span>
+    <span class="spec-pill">Export <b>JPG / PNG / PDF</b></span>
   </div>
 
   <div class="stats-strip" id="statsStrip">
     <div class="stat-box">
       <span class="stat-num" id="statTotal">0</span>
-      <span class="stat-label">Total Photos Processed</span>
+      <span class="stat-label">Total Processed</span>
     </div>
     <div class="stat-box">
       <span class="stat-num" id="statToday">0</span>
-      <span class="stat-label">Processed Today</span>
+      <span class="stat-label">Today</span>
     </div>
     <div class="stat-box">
       <span class="stat-num" id="statSession">0</span>
-      <span class="stat-label">Processed By You (Session)</span>
+      <span class="stat-label">Your Session</span>
     </div>
   </div>
 </section>
@@ -1112,26 +1517,39 @@
   <div class="workflow-bar" aria-label="Photo workflow">
     <div class="workflow-step is-current" data-step="1">
       <span class="step-number">1</span>
-      <span><b>Upload</b><small>Choose photo(s)</small></span>
+      <span><b>Upload</b><small>1 or whole class</small></span>
     </div>
     <span class="step-connector"></span>
     <div class="workflow-step" data-step="2">
       <span class="step-number">2</span>
-      <span><b>Review</b><small>Preview &amp; adjust</small></span>
+      <span><b>Auto Process</b><small>White BG &amp; resize</small></span>
     </div>
     <span class="step-connector"></span>
     <div class="workflow-step" data-step="3">
       <span class="step-number">3</span>
-      <span><b>Download</b><small>JPG, PNG, or PDF</small></span>
+      <span><b>Download</b><small>1-Click ZIP or JPG</small></span>
     </div>
   </div>
 
+  <!-- Mobile Collapsible Settings Bar -->
+  <button type="button" class="mobile-settings-toggle" id="mobileSettingsBtn" aria-expanded="false">
+    <span class="ms-left">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Settings &amp; Presets
+    </span>
+    <span class="ms-summary" id="mobileSpecSummary">600×800 · ≤25 KB · White</span>
+  </button>
+
   <div class="tool-grid">
     <!-- Panel 1: Preset & Output Controls -->
-    <div class="panel">
+    <div class="panel" id="settingsPanel">
       <div class="panel-head">
-        <span class="label">CUSTOMIZE</span>
-        <h3>Preset &amp; Adjustments</h3>
+        <div>
+          <span class="label">CUSTOMIZE</span>
+          <h3>Preset &amp; Adjustments</h3>
+        </div>
       </div>
       <div class="settings-body">
         <div class="field-group">
@@ -1169,7 +1587,7 @@
         </div>
 
         <div class="field-group">
-          <label class="field-label" for="fitModeSelect"> Framing Mode </label>
+          <label class="field-label" for="fitModeSelect">Framing Mode</label>
           <select id="fitModeSelect">
             <option value="contain" selected>Fit Full Photo (No cropping)</option>
             <option value="cover">Fill Frame (Smart top-center crop)</option>
@@ -1177,12 +1595,12 @@
         </div>
 
         <div class="field-group">
-          <span class="field-label">Background Fill</span>
+          <span class="field-label">Background Color</span>
           <div class="bg-swatches" role="group" aria-label="Background color choices">
-            <button type="button" class="swatch-btn active" data-bg="#FFFFFF" style="background:#FFFFFF;" title="Pure White (#FFFFFF)" aria-label="Pure White background"></button>
-            <button type="button" class="swatch-btn" data-bg="#E6F2FF" style="background:#E6F2FF;" title="Passport Light Blue (#E6F2FF)" aria-label="Light Blue background"></button>
-            <button type="button" class="swatch-btn" data-bg="#F3F4F6" style="background:#F3F4F6;" title="Soft Gray (#F3F4F6)" aria-label="Soft Gray background"></button>
-            <button type="button" class="swatch-btn swatch-orig" data-bg="original" title="Keep original photo background">Original</button>
+            <button type="button" class="swatch-btn active" data-bg="#FFFFFF" data-name="White" style="background:#FFFFFF;" title="Pure White (#FFFFFF)" aria-label="Pure White background"></button>
+            <button type="button" class="swatch-btn" data-bg="#E6F2FF" data-name="Blue" style="background:#E6F2FF;" title="Passport Light Blue (#E6F2FF)" aria-label="Light Blue background"></button>
+            <button type="button" class="swatch-btn" data-bg="#F3F4F6" data-name="Gray" style="background:#F3F4F6;" title="Soft Gray (#F3F4F6)" aria-label="Soft Gray background"></button>
+            <button type="button" class="swatch-btn swatch-orig" data-bg="original" data-name="Original" title="Keep original photo background">Original</button>
           </div>
         </div>
 
@@ -1191,66 +1609,130 @@
           <input type="checkbox" id="smoothEdgesToggle" checked>
         </label>
 
+        <button type="button" class="reprocess-batch-btn" id="reprocessBatchBtn">
+          Apply New Settings to All Batch Photos
+        </button>
+
         <button type="button" class="reset-defaults-btn" id="resetDefaultsBtn">
-          Reset to Default (600&times;800 &middot; &le;25 KB)
+          Reset Default (600&times;800 &middot; &le;25 KB)
         </button>
       </div>
     </div>
 
-    <!-- Panel 2: Upload & Before/After Preview -->
-    <div class="panel">
+    <!-- Panel 2: Upload, Single Preview & Class Batch Workspace -->
+    <div class="panel" id="uploadPanel">
       <div class="dropzone" id="dropzone">
+        <!-- Initial Empty Dropzone -->
         <div class="dz-inner" id="dzInner">
           <div class="dz-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M12 16V4M12 4 8 8M12 4l4 4" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round"/>
             </svg>
           </div>
-          <h3>Select Image(s)</h3>
-          <p>Click to browse or drag &amp; drop one or multiple photos here — JPG, PNG, or WEBP</p>
-          <button class="pick-btn" id="pickBtn" type="button">Choose Photo</button>
-          <input type="file" id="fileInput" accept="image/png, image/jpeg, image/webp" multiple aria-label="Choose one or more photos">
+          <h3>Upload Single or Class Batch</h3>
+          <p>Select 1 photo or select all student photos of your class together — AI turns backgrounds white &amp; compresses automatically!</p>
+
+          <div class="upload-btn-group">
+            <button class="pick-btn" id="pickBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>
+              </svg>
+              Choose Photo(s)
+            </button>
+            <button class="pick-btn batch-btn" id="pickFolderBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Upload Class Folder
+            </button>
+          </div>
+
+          <span class="batch-tip-pill">Supports 1 to 100+ photos at once &middot; JPG, PNG, WEBP</span>
+
+          <input type="file" id="fileInput" accept="image/png, image/jpeg, image/webp" multiple aria-label="Choose one or multiple photos">
+          <input type="file" id="folderInput" webkitdirectory directory multiple aria-label="Choose a whole folder of class photos">
         </div>
 
-        <div class="preview-wrap" id="previewWrap">
-          <div class="preview-container">
-            <div class="preview-card">
-              <h4>Before</h4>
-              <div class="preview-img-frame" id="frameBefore">
-                <img id="previewImgBefore" alt="Original uploaded photo">
+        <!-- Active Workspace -->
+        <div class="workspace-active" id="workspaceActive">
+          <!-- Batch Progress & 1-Click Download All Banner -->
+          <div class="batch-banner" id="batchBanner">
+            <div class="batch-top-row">
+              <div class="batch-title-wrap">
+                <strong id="batchTitleText">Class Batch Processing…</strong>
+                <span id="batchSubText">0 / 0 completed</span>
               </div>
             </div>
-            <div class="preview-card">
-              <h4>After</h4>
-              <div class="preview-img-frame" id="frameAfter">
-                <img id="previewImg" alt="Processed output preview">
-              </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="batchProgressFill"></div>
+            </div>
+            <div class="batch-actions-row">
+              <button type="button" class="zip-download-btn" id="downloadZipBtn" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span id="downloadZipLabel">Download All Photos (.ZIP)</span>
+              </button>
+              <button type="button" class="batch-pdf-btn" id="downloadBatchPdfBtn" disabled title="Download all batch photos in one PDF">
+                All-in-1 PDF
+              </button>
             </div>
           </div>
 
-          <div class="processing-row" id="processingRow" role="status" aria-live="polite" aria-atomic="true" style="display:none;">
-            <span class="spinner"></span>
-            <span id="processingText">Processing photo…</span>
+          <!-- Selected Photo Before/After Inspector -->
+          <div class="inspector-box">
+            <div class="inspector-header">
+              <span>Previewing: <strong id="inspectorFileName">photo.jpg</strong></span>
+              <span id="inspectorIndexBadge">1 / 1</span>
+            </div>
+
+            <div class="preview-container">
+              <div class="preview-card">
+                <h4>Before</h4>
+                <div class="preview-img-frame" id="frameBefore">
+                  <img id="previewImgBefore" alt="Original uploaded photo">
+                </div>
+              </div>
+              <div class="preview-card">
+                <h4>After</h4>
+                <div class="preview-img-frame" id="frameAfter">
+                  <img id="previewImg" alt="Processed output preview">
+                </div>
+              </div>
+            </div>
+
+            <div class="processing-row" id="processingRow" role="status" aria-live="polite" style="display:none;">
+              <span class="spinner"></span>
+              <span id="processingText">Processing photo…</span>
+            </div>
           </div>
 
+          <!-- Batch Thumbnail Grid (shown when 2+ photos uploaded) -->
+          <div class="batch-grid-wrap" id="batchGridWrap">
+            <div class="batch-grid-label">
+              <span>Class Photos (<span id="batchCountNum">0</span>)</span>
+              <small>Tap any student photo to inspect</small>
+            </div>
+            <div class="batch-grid" id="batchGrid"></div>
+          </div>
+
+          <!-- Bottom Navigation / Add More / Clear -->
           <div class="photo-nav">
-            <button class="change-photo" id="changeBtn" type="button">+ Choose photo(s)</button>
-            <div class="queue-controls">
-              <button class="nav-btn secondary" id="prevPhotoBtn" type="button" disabled aria-label="Previous photo">&larr;</button>
-              <span id="queuePosition" class="queue-position" aria-live="polite">No photos</span>
-              <button class="nav-btn" id="nextPhotoBtn" type="button" disabled>Next &rarr;</button>
-            </div>
+            <button class="action-link-btn" id="addMoreBtn" type="button">+ Add More Photos</button>
+            <button class="action-link-btn danger" id="clearAllBtn" type="button">New / Clear All</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Panel 3: Specifications & Downloads -->
-    <div class="panel">
+    <!-- Panel 3: Selected Photo Specifications & Single File Downloads -->
+    <div class="panel" id="specsPanel">
       <div class="panel-head">
-        <span class="label">PHOTO DETAILS</span>
-        <h3>Specifications</h3>
+        <div>
+          <span class="label">SELECTED PHOTO</span>
+          <h3>Specifications</h3>
+        </div>
       </div>
 
       <div class="receipt-body" id="receiptBody">
@@ -1259,24 +1741,24 @@
             <path d="M6 2h9l3 3v17H6z"/>
             <path d="M9 9h6M9 13h6M9 17h3"/>
           </svg>
-          Upload a photo to automatically format and view output specifications.
+          Upload single or batch photos to inspect output dimensions and KB size.
         </div>
       </div>
 
       <div class="receipt-foot">
-        <div class="download-label">Download Formatted Photo</div>
+        <div class="download-label">Save Selected Photo</div>
         <div class="download-row">
-          <button class="dl-btn" id="dlJpg" type="button" title="Download compressed JPG" disabled>
+          <button class="dl-btn" id="dlJpg" type="button" title="Download selected photo as compressed JPG" disabled>
             <span>JPG</span>
             <small id="dlJpgSize">Compressed</small>
           </button>
-          <button class="dl-btn" id="dlPng" type="button" title="Download lossless PNG" disabled>
+          <button class="dl-btn alt" id="dlPng" type="button" title="Download selected photo as PNG" disabled>
             <span>PNG</span>
             <small>Lossless</small>
           </button>
-          <button class="dl-btn" id="dlPdf" type="button" title="Download print-ready PDF" disabled>
+          <button class="dl-btn alt" id="dlPdf" type="button" title="Download selected photo as PDF" disabled>
             <span>PDF</span>
-            <small>Document</small>
+            <small>Single</small>
           </button>
         </div>
       </div>
@@ -1284,30 +1766,30 @@
   </div>
 
   <details class="quick-help">
-    <summary>How to use this tool</summary>
+    <summary>How to use Single &amp; Full-Class Batch Mode</summary>
     <div class="help-content">
       <div>
-        <b>1. Select Photo(s)</b>
-        <span>Drop or select one or multiple JPG, PNG, or WEBP portraits. Standard 600&times;800 px (&le;25 KB) is pre-selected.</span>
+        <b>1. Select 1 or Whole Class</b>
+        <span>Tap <em>Choose Photo(s)</em> to pick all student photos from your phone gallery or PC, or <em>Upload Class Folder</em>.</span>
       </div>
       <div>
-        <b>2. Review &amp; Adjust</b>
-        <span>AI removes the background locally in your browser. Tweak presets, size limits, or edge smoothing anytime.</span>
+        <b>2. Automatic AI Batch Edit</b>
+        <span>Every photo automatically gets a pure white background, 600&times;800 px size, and &le;25 KB compression without manual clicks.</span>
       </div>
       <div>
-        <b>3. Instant Download</b>
-        <span>Save your ready-to-upload file as JPG (compressed under limit), PNG, or PDF with a single click.</span>
+        <b>3. 1-Click ZIP Download</b>
+        <span>Tap <em>Download All Photos (.ZIP)</em> once to get the entire class ready for portal upload with original student names!</span>
       </div>
     </div>
   </details>
 
   <p class="hint-note">
-    Tip: <b>A clear, well-lit front-facing portrait</b> gives the cleanest white background cutout. Everything runs locally on your device — your photos are never uploaded to any server.
+    Tip: <b>Clear, well-lit front portraits</b> give the cleanest AI white background cutout. 100% private — all single and batch processing happens locally on your phone or computer.
   </p>
 </main>
 
 <footer>
-  Built by <strong>Tayyab Nawaz</strong> &middot; Photo Resizer &amp; White Background Tool &middot; 100% Client-Side Privacy
+  Built by <strong>Tayyab Nawaz</strong> &middot; Resize, Compress &amp; Change Background &middot; 100% On-Device Privacy
 </footer>
 
 <canvas id="workCanvas"></canvas>
@@ -1318,35 +1800,57 @@ let targetW = 600;
 let targetH = 800;
 let maxKB = 25;
 let fitMode = "contain";
-let bgFill = "#FFFFFF"; // hex color or 'original'
+let bgFill = "#FFFFFF";
+let bgName = "White";
 let smoothEdges = true;
 
-let photoQueue = [];
-let photoIndex = 0;
-let currentSourceImg = null;
-let currentMaskResult = null;
-let bgRemovalSucceeded = false;
-let currentBeforeUrl = null;
-let currentAfterUrl = null;
-
-let finalJpgBlob = null;
-let finalPngBlob = null;
-let originalFileName = "photo";
+/*
+  batchItems: Array of {
+    id: number,
+    file: File,
+    baseName: string,
+    status: 'pending' | 'processing' | 'done' | 'error',
+    jpgBlob: Blob | null,
+    thumbUrl: string | null,
+    beforeUrl: string | null,
+    quality: number,
+    bgRemoved: boolean
+  }
+*/
+let batchItems = [];
+let selectedIndex = 0;
+let batchRunToken = 0; // increments to cancel an in-flight batch run cleanly
+let settingsDirtyForBatch = false;
 
 /* ============ DOM ELEMENTS ============ */
 const dropzone = document.getElementById("dropzone");
 const dzInner = document.getElementById("dzInner");
+const workspaceActive = document.getElementById("workspaceActive");
 const fileInput = document.getElementById("fileInput");
+const folderInput = document.getElementById("folderInput");
 const pickBtn = document.getElementById("pickBtn");
-const previewWrap = document.getElementById("previewWrap");
+const pickFolderBtn = document.getElementById("pickFolderBtn");
+const addMoreBtn = document.getElementById("addMoreBtn");
+const clearAllBtn = document.getElementById("clearAllBtn");
+
+const batchBanner = document.getElementById("batchBanner");
+const batchTitleText = document.getElementById("batchTitleText");
+const batchSubText = document.getElementById("batchSubText");
+const batchProgressFill = document.getElementById("batchProgressFill");
+const downloadZipBtn = document.getElementById("downloadZipBtn");
+const downloadZipLabel = document.getElementById("downloadZipLabel");
+const downloadBatchPdfBtn = document.getElementById("downloadBatchPdfBtn");
+
+const batchGridWrap = document.getElementById("batchGridWrap");
+const batchGrid = document.getElementById("batchGrid");
+const batchCountNum = document.getElementById("batchCountNum");
+
+const inspectorFileName = document.getElementById("inspectorFileName");
+const inspectorIndexBadge = document.getElementById("inspectorIndexBadge");
 const previewImgBefore = document.getElementById("previewImgBefore");
 const previewImg = document.getElementById("previewImg");
 const processingRow = document.getElementById("processingRow");
 const processingText = document.getElementById("processingText");
-const changeBtn = document.getElementById("changeBtn");
-const prevPhotoBtn = document.getElementById("prevPhotoBtn");
-const nextPhotoBtn = document.getElementById("nextPhotoBtn");
-const queuePosition = document.getElementById("queuePosition");
 const receiptBody = document.getElementById("receiptBody");
 
 const dlJpg = document.getElementById("dlJpg");
@@ -1354,6 +1858,9 @@ const dlPng = document.getElementById("dlPng");
 const dlPdf = document.getElementById("dlPdf");
 const dlJpgSize = document.getElementById("dlJpgSize");
 
+const mobileSettingsBtn = document.getElementById("mobileSettingsBtn");
+const mobileSpecSummary = document.getElementById("mobileSpecSummary");
+const settingsPanel = document.getElementById("settingsPanel");
 const presetSelect = document.getElementById("presetSelect");
 const inputWidth = document.getElementById("inputWidth");
 const inputHeight = document.getElementById("inputHeight");
@@ -1363,6 +1870,7 @@ const maxKbLabel = document.getElementById("maxKbLabel");
 const fitModeSelect = document.getElementById("fitModeSelect");
 const swatchBtns = document.querySelectorAll(".swatch-btn");
 const smoothEdgesToggle = document.getElementById("smoothEdgesToggle");
+const reprocessBatchBtn = document.getElementById("reprocessBatchBtn");
 const resetDefaultsBtn = document.getElementById("resetDefaultsBtn");
 
 const pillDim = document.getElementById("pillDim");
@@ -1373,17 +1881,21 @@ const frameAfter = document.getElementById("frameAfter");
 const canvas = document.getElementById("workCanvas");
 const ctx = canvas.getContext("2d");
 
-/* ============ WORKFLOW INDICATOR ============ */
+/* ============ MOBILE SETTINGS DRAWER ============ */
+mobileSettingsBtn.addEventListener("click", () => {
+  const isOpen = settingsPanel.classList.toggle("mobile-open");
+  mobileSettingsBtn.setAttribute("aria-expanded", String(isOpen));
+});
+
+/* ============ WORKFLOW & PILLS ============ */
 function updateWorkflow(step) {
-  const steps = document.querySelectorAll(".workflow-step");
-  steps.forEach((el, idx) => {
+  document.querySelectorAll(".workflow-step").forEach((el, idx) => {
     const s = idx + 1;
     el.classList.toggle("is-current", s === step);
     el.classList.toggle("is-done", s < step);
   });
 }
 
-/* ============ SETTINGS HANDLERS ============ */
 function gcd(a, b) {
   return b === 0 ? a : gcd(b, a % b);
 }
@@ -1392,19 +1904,27 @@ function syncHeaderPills() {
   pillDim.innerHTML = `${targetW} &times; ${targetH} px`;
   pillKb.innerHTML = `&le; ${maxKB} KB`;
   maxKbLabel.innerHTML = `&le; ${maxKB} KB`;
+  mobileSpecSummary.textContent = `${targetW}×${targetH} · ≤${maxKB} KB · ${bgName}`;
+
   const g = gcd(targetW, targetH);
   const rw = Math.round(targetW / g);
   const rh = Math.round(targetH / g);
   aspectHint.textContent = rw <= 30 && rh <= 30 ? `${rw} : ${rh}` : `${(targetW / targetH).toFixed(2)}`;
+
   const cssAspect = `${targetW} / ${targetH}`;
   frameBefore.style.aspectRatio = cssAspect;
   frameAfter.style.aspectRatio = cssAspect;
 }
 
-function rerenderIfLoaded() {
+function onSettingChanged() {
   syncHeaderPills();
-  if (currentSourceImg) {
-    renderProcessedOutput(currentSourceImg, currentMaskResult, false);
+  if (batchItems.length === 1) {
+    // Automatically re-process single photo right away
+    runBatchQueue(true);
+  } else if (batchItems.length > 1) {
+    settingsDirtyForBatch = true;
+    reprocessBatchBtn.classList.add("visible");
+    reprocessBatchBtn.textContent = `Apply New Settings to All ${batchItems.length} Photos`;
   }
 }
 
@@ -1418,7 +1938,7 @@ presetSelect.addEventListener("change", () => {
     inputWidth.value = w;
     inputHeight.value = h;
     maxKbRange.value = kb;
-    rerenderIfLoaded();
+    onSettingChanged();
   }
 });
 
@@ -1431,7 +1951,7 @@ presetSelect.addEventListener("change", () => {
     targetW = w;
     targetH = h;
     presetSelect.value = "custom";
-    rerenderIfLoaded();
+    onSettingChanged();
   });
 });
 
@@ -1439,16 +1959,17 @@ maxKbRange.addEventListener("input", () => {
   maxKB = parseInt(maxKbRange.value, 10) || 25;
   maxKbLabel.innerHTML = `&le; ${maxKB} KB`;
   pillKb.innerHTML = `&le; ${maxKB} KB`;
+  mobileSpecSummary.textContent = `${targetW}×${targetH} · ≤${maxKB} KB · ${bgName}`;
 });
 
 maxKbRange.addEventListener("change", () => {
   maxKB = parseInt(maxKbRange.value, 10) || 25;
-  rerenderIfLoaded();
+  onSettingChanged();
 });
 
 fitModeSelect.addEventListener("change", () => {
   fitMode = fitModeSelect.value;
-  rerenderIfLoaded();
+  onSettingChanged();
 });
 
 swatchBtns.forEach((btn) => {
@@ -1456,13 +1977,24 @@ swatchBtns.forEach((btn) => {
     swatchBtns.forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     bgFill = btn.dataset.bg;
-    rerenderIfLoaded();
+    bgName = btn.dataset.name || "Custom";
+    onSettingChanged();
   });
 });
 
 smoothEdgesToggle.addEventListener("change", () => {
   smoothEdges = smoothEdgesToggle.checked;
-  rerenderIfLoaded();
+  onSettingChanged();
+});
+
+reprocessBatchBtn.addEventListener("click", () => {
+  reprocessBatchBtn.classList.remove("visible");
+  settingsDirtyForBatch = false;
+  if (window.innerWidth <= 1040) {
+    settingsPanel.classList.remove("mobile-open");
+    mobileSettingsBtn.setAttribute("aria-expanded", "false");
+  }
+  runBatchQueue(true);
 });
 
 resetDefaultsBtn.addEventListener("click", () => {
@@ -1472,6 +2004,7 @@ resetDefaultsBtn.addEventListener("click", () => {
   maxKB = 25;
   fitMode = "contain";
   bgFill = "#FFFFFF";
+  bgName = "White";
   smoothEdges = true;
 
   inputWidth.value = 600;
@@ -1480,48 +2013,55 @@ resetDefaultsBtn.addEventListener("click", () => {
   fitModeSelect.value = "contain";
   smoothEdgesToggle.checked = true;
   swatchBtns.forEach((b) => b.classList.toggle("active", b.dataset.bg === "#FFFFFF"));
-  rerenderIfLoaded();
+  onSettingChanged();
 });
 
-/* ============ FILE UPLOAD & QUEUE ============ */
+/* ============ UPLOAD & BATCH MANAGEMENT ============ */
 pickBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  fileInput.click();
-});
-dzInner.addEventListener("click", () => fileInput.click());
-changeBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   fileInput.value = "";
   fileInput.click();
 });
 
-prevPhotoBtn.addEventListener("click", () => {
-  if (photoIndex > 0) {
-    photoIndex -= 1;
-    handleFile(photoQueue[photoIndex]);
-  }
+pickFolderBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  folderInput.value = "";
+  folderInput.click();
 });
 
-nextPhotoBtn.addEventListener("click", () => {
-  if (photoIndex < photoQueue.length - 1) {
-    photoIndex += 1;
-    handleFile(photoQueue[photoIndex]);
-  }
+addMoreBtn.addEventListener("click", () => {
+  fileInput.value = "";
+  fileInput.click();
 });
 
-function loadPhotoQueue(files) {
-  photoQueue = Array.from(files || []).filter((f) => /image\/(jpeg|png|webp)/i.test(f.type));
-  photoIndex = 0;
-  if (!photoQueue.length) {
-    alert("Please select JPG, PNG, or WEBP photo(s).");
-    return;
-  }
-  handleFile(photoQueue[0]);
-}
+clearAllBtn.addEventListener("click", () => {
+  batchRunToken++;
+  cleanupBatchUrls();
+  batchItems = [];
+  selectedIndex = 0;
+  reprocessBatchBtn.classList.remove("visible");
+  workspaceActive.classList.remove("active");
+  dzInner.style.display = "flex";
+  setSingleDownloadsEnabled(false);
+  updateWorkflow(1);
+  receiptBody.innerHTML = `
+    <div class="empty-receipt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M6 2h9l3 3v17H6z"/><path d="M9 9h6M9 13h6M9 17h3"/>
+      </svg>
+      Upload single or batch photos to inspect output dimensions and KB size.
+    </div>`;
+});
 
 fileInput.addEventListener("change", (e) => {
   if (e.target.files && e.target.files.length) {
-    loadPhotoQueue(e.target.files);
+    enqueueFiles(e.target.files);
+  }
+});
+
+folderInput.addEventListener("change", (e) => {
+  if (e.target.files && e.target.files.length) {
+    enqueueFiles(e.target.files);
   }
 });
 
@@ -1541,73 +2081,301 @@ fileInput.addEventListener("change", (e) => {
 
 dropzone.addEventListener("drop", (e) => {
   const files = e.dataTransfer.files;
-  if (files && files.length) loadPhotoQueue(files);
+  if (files && files.length) enqueueFiles(files);
 });
 
-/* ============ AI & IMAGE PROCESSING ============ */
+function cleanupBatchUrls() {
+  batchItems.forEach((item) => {
+    if (item.thumbUrl) URL.revokeObjectURL(item.thumbUrl);
+    if (item.beforeUrl) URL.revokeObjectURL(item.beforeUrl);
+  });
+}
+
+let nextItemId = 1;
+
+function enqueueFiles(fileList) {
+  const validFiles = Array.from(fileList || []).filter((f) =>
+    /image\/(jpeg|png|webp)/i.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name)
+  );
+
+  if (!validFiles.length) {
+    alert("Please select JPG, PNG, or WEBP image files.");
+    return;
+  }
+
+  const startIdx = batchItems.length;
+  validFiles.forEach((file) => {
+    const cleanBase = file.name.replace(/\.[^.]+$/, "") || `student_${nextItemId}`;
+    batchItems.push({
+      id: nextItemId++,
+      file,
+      baseName: cleanBase,
+      status: "pending",
+      jpgBlob: null,
+      thumbUrl: null,
+      beforeUrl: null,
+      quality: 0.9,
+      bgRemoved: false,
+    });
+  });
+
+  dzInner.style.display = "none";
+  workspaceActive.classList.add("active");
+
+  const isMulti = batchItems.length > 1;
+  batchBanner.classList.toggle("active", isMulti);
+  batchGridWrap.classList.toggle("active", isMulti);
+  batchCountNum.textContent = String(batchItems.length);
+
+  renderBatchGrid();
+  selectItem(startIdx);
+  runBatchQueue(false);
+}
+
+function renderBatchGrid() {
+  if (batchItems.length <= 1) {
+    batchGrid.innerHTML = "";
+    return;
+  }
+
+  batchGrid.innerHTML = batchItems
+    .map((item, idx) => {
+      const isSel = idx === selectedIndex ? "selected" : "";
+      const kbText =
+        item.status === "done" && item.jpgBlob
+          ? `${(item.jpgBlob.size / 1024).toFixed(1)} KB`
+          : item.status === "processing"
+          ? "AI…"
+          : "Wait";
+      const badgeCls = item.status === "done" ? "batch-kb-badge done" : "batch-kb-badge";
+      const imgSrc = item.thumbUrl || "";
+
+      return `
+        <div class="batch-card ${isSel}" data-idx="${idx}">
+          <div class="batch-thumb">
+            ${imgSrc ? `<img src="${imgSrc}" alt="${escapeHtml(item.baseName)}" loading="lazy">` : `<span class="spinner"></span>`}
+            <span class="${badgeCls}">${kbText}</span>
+          </div>
+          <div class="batch-card-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.baseName)}</div>
+          <button type="button" class="batch-card-dl" data-dl-idx="${idx}" ${item.status === "done" ? "" : "disabled"}>
+            ⬇ JPG
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+batchGrid.addEventListener("click", (e) => {
+  const dlBtn = e.target.closest("[data-dl-idx]");
+  if (dlBtn) {
+    e.stopPropagation();
+    const idx = Number(dlBtn.dataset.dlIdx);
+    const item = batchItems[idx];
+    if (item && item.jpgBlob) {
+      downloadBlob(item.jpgBlob, `${item.baseName}_${targetW}x${targetH}.jpg`);
+    }
+    return;
+  }
+
+  const card = e.target.closest("[data-idx]");
+  if (card) {
+    selectItem(Number(card.dataset.idx));
+  }
+});
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
+function selectItem(idx) {
+  if (!batchItems.length) return;
+  selectedIndex = Math.max(0, Math.min(batchItems.length - 1, idx));
+  const item = batchItems[selectedIndex];
+
+  inspectorFileName.textContent = item.file.name;
+  inspectorIndexBadge.textContent = `${selectedIndex + 1} / ${batchItems.length}`;
+
+  if (!item.beforeUrl) {
+    item.beforeUrl = URL.createObjectURL(item.file);
+  }
+  previewImgBefore.src = item.beforeUrl;
+
+  if (item.status === "done" && item.thumbUrl) {
+    previewImg.src = item.thumbUrl;
+    previewImg.style.opacity = "1";
+    processingRow.style.display = "none";
+    renderSpecsReceipt(item);
+    setSingleDownloadsEnabled(true);
+  } else {
+    previewImg.src = item.beforeUrl;
+    previewImg.style.opacity = "0.28";
+    processingRow.style.display = "flex";
+    processingText.textContent =
+      item.status === "processing" ? `Processing ${item.file.name}…` : "Queued for AI processing…";
+    setSingleDownloadsEnabled(false);
+    receiptBody.innerHTML = `<div class="empty-receipt">Processing ${escapeHtml(item.file.name)}…</div>`;
+  }
+
+  // Highlight active card without full DOM rebuild
+  batchGrid.querySelectorAll(".batch-card").forEach((el) => {
+    el.classList.toggle("selected", Number(el.dataset.idx) === selectedIndex);
+  });
+}
+
+/* ============ SEQUENTIAL MEMORY-SAFE BATCH ENGINE ============ */
+async function waitForSegmenterReady() {
+  if (typeof window.__segmentPerson === "function") return true;
+  for (let i = 0; i < 50; i++) {
+    await new Promise((r) => setTimeout(r, 200));
+    if (typeof window.__segmentPerson === "function") return true;
+  }
+  return false;
+}
+
+async function runBatchQueue(reprocessAll) {
+  const myToken = ++batchRunToken;
+
+  if (reprocessAll) {
+    batchItems.forEach((item) => {
+      item.status = "pending";
+      if (item.thumbUrl) {
+        URL.revokeObjectURL(item.thumbUrl);
+        item.thumbUrl = null;
+      }
+      item.jpgBlob = null;
+    });
+    renderBatchGrid();
+    selectItem(selectedIndex);
+  }
+
+  updateWorkflow(2);
+  downloadZipBtn.disabled = true;
+  downloadBatchPdfBtn.disabled = true;
+
+  const segAvailable = bgFill !== "original" ? await waitForSegmenterReady() : false;
+
+  for (let i = 0; i < batchItems.length; i++) {
+    if (myToken !== batchRunToken) return;
+    const item = batchItems[i];
+    if (item.status === "done") continue;
+
+    item.status = "processing";
+    updateBatchProgressUI(i, item.file.name);
+    if (i === selectedIndex) selectItem(i);
+    renderBatchGrid();
+
+    try {
+      await processSingleItem(item, segAvailable, !reprocessAll);
+      item.status = "done";
+    } catch (err) {
+      console.warn("Error processing item:", item.file.name, err);
+      item.status = "error";
+    }
+
+    if (myToken !== batchRunToken) return;
+
+    renderBatchGrid();
+    if (i === selectedIndex) {
+      selectItem(i);
+    }
+
+    // Yield to keep mobile UI smooth
+    await new Promise((r) => setTimeout(r, 25));
+  }
+
+  if (myToken !== batchRunToken) return;
+  finishBatchProgressUI();
+}
+
+function updateBatchProgressUI(currentIdx, currentName) {
+  const doneCount = batchItems.filter((x) => x.status === "done").length;
+  const total = batchItems.length;
+  const pct = Math.round((doneCount / Math.max(1, total)) * 100);
+
+  batchProgressFill.style.width = `${pct}%`;
+  batchTitleText.textContent = `Processing Class Batch (${doneCount}/${total})…`;
+  batchSubText.textContent = `Working on: ${currentName}`;
+  processingRow.style.display = "flex";
+  processingText.textContent =
+    total > 1
+      ? `AI Processing (${currentIdx + 1}/${total}): ${currentName}`
+      : `Removing background & compressing…`;
+}
+
+function finishBatchProgressUI() {
+  const doneItems = batchItems.filter((x) => x.status === "done" && x.jpgBlob);
+  const total = batchItems.length;
+  const totalKB = (
+    doneItems.reduce((acc, x) => acc + x.jpgBlob.size, 0) / 1024
+  ).toFixed(0);
+
+  batchProgressFill.style.width = "100%";
+  batchTitleText.textContent = `All ${doneItems.length} Photos Ready!`;
+  batchSubText.textContent = `White BG · ${targetW}×${targetH} px · Total ${totalKB} KB`;
+
+  downloadZipBtn.disabled = doneItems.length === 0;
+  downloadBatchPdfBtn.disabled = doneItems.length === 0;
+  downloadZipLabel.textContent = `Download All ${doneItems.length} Photos (.ZIP)`;
+
+  processingRow.style.display = "none";
+  updateWorkflow(3);
+}
+
+/* ============ CORE AI & IMAGE PIPELINE ============ */
 function downscaleForProcessing(file) {
   return new Promise((resolve) => {
     const objectUrl = URL.createObjectURL(file);
     let settled = false;
 
-    const cleanupAndResolve = (val) => {
+    const finish = (val) => {
       if (settled) return;
       settled = true;
       URL.revokeObjectURL(objectUrl);
       resolve(val);
     };
 
-    const safetyTimer = setTimeout(() => cleanupAndResolve(file), 8000);
-
+    const timer = setTimeout(() => finish(file), 8000);
     const img = new Image();
     img.onload = () => {
-      const MAX_DIM = 1200;
+      const MAX_DIM = 1050;
       const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
       const w = Math.max(1, Math.round(img.width * scale));
       const h = Math.max(1, Math.round(img.height * scale));
-
       try {
-        const tmpCanvas = document.createElement("canvas");
-        tmpCanvas.width = w;
-        tmpCanvas.height = h;
-        const tmpCtx = tmpCanvas.getContext("2d");
-        tmpCtx.fillStyle = "#FFFFFF";
-        tmpCtx.fillRect(0, 0, w, h);
-        tmpCtx.drawImage(img, 0, 0, w, h);
-        tmpCanvas.toBlob(
+        const tmp = document.createElement("canvas");
+        tmp.width = w;
+        tmp.height = h;
+        const tCtx = tmp.getContext("2d");
+        tCtx.fillStyle = "#FFFFFF";
+        tCtx.fillRect(0, 0, w, h);
+        tCtx.drawImage(img, 0, 0, w, h);
+        tmp.toBlob(
           (blob) => {
-            clearTimeout(safetyTimer);
-            cleanupAndResolve(blob || file);
+            clearTimeout(timer);
+            tmp.width = 0;
+            tmp.height = 0;
+            finish(blob || file);
           },
           "image/jpeg",
           0.9
         );
-      } catch (err) {
-        clearTimeout(safetyTimer);
-        cleanupAndResolve(file);
+      } catch (e) {
+        clearTimeout(timer);
+        finish(file);
       }
     };
     img.onerror = () => {
-      clearTimeout(safetyTimer);
-      cleanupAndResolve(file);
+      clearTimeout(timer);
+      finish(file);
     };
     img.src = objectUrl;
-  });
-}
-
-function withTimeout(promise, ms) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timed out after ${Math.round(ms / 1000)}s`)), ms);
-    promise.then(
-      (val) => {
-        clearTimeout(timer);
-        resolve(val);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      }
-    );
   });
 }
 
@@ -1627,93 +2395,85 @@ function blobToImage(blob) {
   });
 }
 
-function handleFile(file) {
-  originalFileName = file.name.replace(/\.[^.]+$/, "") || "photo";
-  queuePosition.textContent = `${photoIndex + 1} / ${photoQueue.length}`;
-  prevPhotoBtn.disabled = true;
-  nextPhotoBtn.disabled = true;
-  bgRemovalSucceeded = false;
-  currentMaskResult = null;
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("Timeout")), ms);
+    promise.then(
+      (v) => { clearTimeout(t); resolve(v); },
+      (e) => { clearTimeout(t); reject(e); }
+    );
+  });
+}
 
-  dzInner.style.display = "none";
-  previewWrap.classList.add("active");
-  processingRow.style.display = "flex";
-  previewImg.style.opacity = "0.32";
-  setDownloadsEnabled(false);
-  updateWorkflow(2);
+async function processSingleItem(item, segAvailable, shouldCountStats) {
+  const smallBlob = await downscaleForProcessing(item.file);
+  const smallImg = await blobToImage(smallBlob);
 
-  receiptBody.innerHTML = `<div class="empty-receipt">Analyzing portrait &amp; preparing clean background…</div>`;
+  let maskResult = null;
+  let bgRemoved = false;
 
-  if (currentBeforeUrl) URL.revokeObjectURL(currentBeforeUrl);
-  currentBeforeUrl = URL.createObjectURL(file);
-  previewImgBefore.src = currentBeforeUrl;
+  if (segAvailable && bgFill !== "original") {
+    try {
+      maskResult = await withTimeout(window.__segmentPerson(smallImg), 25000);
+      bgRemoved = true;
+    } catch (e) {
+      console.warn("Segmentation fallback for", item.file.name, e);
+      maskResult = null;
+    }
+  }
 
-  processingText.textContent = "Preparing photo…";
+  canvas.width = targetW;
+  canvas.height = targetH;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
-  const fallbackToOriginal = (msg) => {
-    bgRemovalSucceeded = false;
-    processingText.textContent = msg;
-    blobToImage(file)
-      .then((img) => {
-        currentSourceImg = img;
-        currentMaskResult = null;
-        renderProcessedOutput(img, null, true);
-      })
-      .catch(() => {
-        processingText.textContent = "Could not read this photo — please try another file.";
-      });
-  };
+  ctx.fillStyle = bgFill === "original" ? "#FFFFFF" : bgFill;
+  ctx.fillRect(0, 0, targetW, targetH);
 
-  const runRemoval = () => {
-    const pipeline = downscaleForProcessing(file)
-      .then((smallBlob) => blobToImage(smallBlob))
-      .then((smallImg) => {
-        processingText.textContent = "Removing background with AI…";
-        return withTimeout(window.__segmentPerson(smallImg), 25000).then((maskResult) => ({
-          smallImg,
-          maskResult,
-        }));
-      });
-
-    withTimeout(pipeline, 35000)
-      .then(({ smallImg, maskResult }) => {
-        bgRemovalSucceeded = true;
-        currentSourceImg = smallImg;
-        currentMaskResult = maskResult;
-        processingText.textContent = "Applying background & compressing…";
-        renderProcessedOutput(smallImg, maskResult, true);
-      })
-      .catch((err) => {
-        console.warn("AI background removal fallback:", err);
-        fallbackToOriginal("AI model unavailable — resizing original photo…");
-      });
-  };
-
-  if (typeof window.__segmentPerson === "function") {
-    runRemoval();
+  let drawW, drawH, dx, dy;
+  if (fitMode === "cover") {
+    const scale = Math.max(targetW / smallImg.width, targetH / smallImg.height);
+    drawW = smallImg.width * scale;
+    drawH = smallImg.height * scale;
+    dx = (targetW - drawW) / 2;
+    dy = (targetH - drawH) * 0.25;
   } else {
-    let attempts = 0;
-    const waitTimer = setInterval(() => {
-      attempts++;
-      if (typeof window.__segmentPerson === "function") {
-        clearInterval(waitTimer);
-        runRemoval();
-      } else if (attempts > 50) {
-        clearInterval(waitTimer);
-        fallbackToOriginal("AI segmenter timed out loading — resizing original photo…");
-      }
-    }, 200);
+    const scale = Math.min(targetW / smallImg.width, targetH / smallImg.height);
+    drawW = smallImg.width * scale;
+    drawH = smallImg.height * scale;
+    dx = (targetW - drawW) / 2;
+    dy = (targetH - drawH) / 2;
+  }
+
+  if (!maskResult || bgFill === "original") {
+    ctx.drawImage(smallImg, dx, dy, drawW, drawH);
+  } else {
+    const cutout = createPersonCutoutCanvas(smallImg, maskResult);
+    ctx.drawImage(cutout, dx, dy, drawW, drawH);
+    cutout.width = 0;
+    cutout.height = 0;
+  }
+
+  const maxBytes = maxKB * 1024;
+  const { blob: jpgBlob, quality } = await compressCanvasBinary(maxBytes);
+
+  if (item.thumbUrl) URL.revokeObjectURL(item.thumbUrl);
+  item.jpgBlob = jpgBlob;
+  item.thumbUrl = URL.createObjectURL(jpgBlob);
+  item.quality = quality;
+  item.bgRemoved = bgRemoved;
+
+  if (shouldCountStats) {
+    incrementGlobalCounters();
   }
 }
 
-/* Build an alpha-masked canvas of the person cutout */
 function createPersonCutoutCanvas(img, maskResult) {
   const w = img.width;
   const h = img.height;
   const maskW = maskResult.width;
   const maskH = maskResult.height;
 
-  // Build raw mask at model resolution
   const rawMaskCanvas = document.createElement("canvas");
   rawMaskCanvas.width = maskW;
   rawMaskCanvas.height = maskH;
@@ -1723,7 +2483,6 @@ function createPersonCutoutCanvas(img, maskResult) {
 
   if (maskResult.confidenceData) {
     const conf = maskResult.confidenceData;
-    // Compare average of upper-frame border pixels (background) vs center portrait box (person)
     let borderSum = 0, borderCount = 0;
     for (let x = 0; x < maskW; x++) {
       borderSum += conf[x];
@@ -1753,12 +2512,11 @@ function createPersonCutoutCanvas(img, maskResult) {
       p = smoothEdges
         ? Math.max(0, Math.min(1, (p - 0.32) / 0.36))
         : (p >= 0.5 ? 1 : 0);
-      const alpha = Math.round(p * 255);
       const idx = i * 4;
       mPixels[idx] = 255;
       mPixels[idx + 1] = 255;
       mPixels[idx + 2] = 255;
-      mPixels[idx + 3] = alpha;
+      mPixels[idx + 3] = Math.round(p * 255);
     }
   } else if (maskResult.categoryData) {
     const cat = maskResult.categoryData;
@@ -1774,7 +2532,6 @@ function createPersonCutoutCanvas(img, maskResult) {
 
   rawMaskCtx.putImageData(maskImgData, 0, 0);
 
-  // Upscale mask smoothly to source photo resolution
   const fullMaskCanvas = document.createElement("canvas");
   fullMaskCanvas.width = w;
   fullMaskCanvas.height = h;
@@ -1788,7 +2545,9 @@ function createPersonCutoutCanvas(img, maskResult) {
   fullMaskCtx.drawImage(rawMaskCanvas, 0, 0, w, h);
   fullMaskCtx.filter = "none";
 
-  // Composite person with mask using destination-in
+  rawMaskCanvas.width = 0;
+  rawMaskCanvas.height = 0;
+
   const personCanvas = document.createElement("canvas");
   personCanvas.width = w;
   personCanvas.height = h;
@@ -1798,54 +2557,10 @@ function createPersonCutoutCanvas(img, maskResult) {
   personCtx.drawImage(fullMaskCanvas, 0, 0, w, h);
   personCtx.globalCompositeOperation = "source-over";
 
+  fullMaskCanvas.width = 0;
+  fullMaskCanvas.height = 0;
+
   return personCanvas;
-}
-
-function renderProcessedOutput(img, maskResult, shouldCountStats) {
-  canvas.width = targetW;
-  canvas.height = targetH;
-
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-
-  // 1. Background fill
-  const useOriginalBg = bgFill === "original" || !maskResult;
-  ctx.fillStyle = bgFill === "original" ? "#FFFFFF" : bgFill;
-  ctx.fillRect(0, 0, targetW, targetH);
-
-  // 2. Compute framing geometry
-  let drawW, drawH, dx, dy;
-  if (fitMode === "cover") {
-    const scale = Math.max(targetW / img.width, targetH / img.height);
-    drawW = img.width * scale;
-    drawH = img.height * scale;
-    dx = (targetW - drawW) / 2;
-    // Slight upper bias for portraits so the head isn't cropped
-    dy = (targetH - drawH) * 0.25;
-  } else {
-    const scale = Math.min(targetW / img.width, targetH / img.height);
-    drawW = img.width * scale;
-    drawH = img.height * scale;
-    dx = (targetW - drawW) / 2;
-    dy = (targetH - drawH) / 2;
-  }
-
-  if (useOriginalBg) {
-    ctx.drawImage(img, dx, dy, drawW, drawH);
-  } else {
-    const cutout = createPersonCutoutCanvas(img, maskResult);
-    ctx.drawImage(cutout, dx, dy, drawW, drawH);
-  }
-
-  // 3. Compress JPEG via binary search to maximize clarity while staying <= maxKB
-  const maxBytes = maxKB * 1024;
-  compressToTargetBinary(maxBytes, (jpgBlob, usedQuality) => {
-    finalJpgBlob = jpgBlob;
-    canvas.toBlob((pngBlob) => {
-      finalPngBlob = pngBlob;
-      finishUp(jpgBlob, pngBlob, usedQuality, maxBytes, shouldCountStats);
-    }, "image/png");
-  });
 }
 
 function canvasToJpegBlob(quality) {
@@ -1854,16 +2569,14 @@ function canvasToJpegBlob(quality) {
   });
 }
 
-async function compressToTargetBinary(maxBytes, callback) {
-  // First check high quality (92%) — if already <= maxBytes, use it right away!
+async function compressCanvasBinary(maxBytes) {
   const highBlob = await canvasToJpegBlob(0.92);
   if (highBlob && highBlob.size <= maxBytes) {
-    callback(highBlob, 0.92);
-    return;
+    return { blob: highBlob, quality: 0.92 };
   }
 
   let low = 0.05;
-  let high = 0.90;
+  let high = 0.9;
   let bestBlob = highBlob;
   let bestQ = 0.05;
 
@@ -1888,44 +2601,38 @@ async function compressToTargetBinary(maxBytes, callback) {
     }
   }
 
-  callback(bestBlob, bestQ);
+  return { blob: bestBlob, quality: bestQ };
 }
 
-function finishUp(jpgBlob, pngBlob, quality, maxBytes, shouldCountStats) {
-  if (currentAfterUrl) URL.revokeObjectURL(currentAfterUrl);
-  currentAfterUrl = URL.createObjectURL(jpgBlob);
-  previewImg.src = currentAfterUrl;
-  previewImg.style.opacity = "1";
-  processingRow.style.display = "none";
-
-  const sizeKB = (jpgBlob.size / 1024).toFixed(1);
-  const underLimit = jpgBlob.size <= maxBytes;
+function renderSpecsReceipt(item) {
+  if (!item || !item.jpgBlob) return;
+  const sizeKB = (item.jpgBlob.size / 1024).toFixed(1);
+  const maxBytes = maxKB * 1024;
+  const underLimit = item.jpgBlob.size <= maxBytes;
   dlJpgSize.textContent = `${sizeKB} KB`;
 
-  let bgDesc = "Original photo";
+  let bgDesc = "Original";
   if (bgFill !== "original") {
-    bgDesc = bgRemovalSucceeded
-      ? `${bgFill.toUpperCase()} (AI Cutout)`
-      : `${bgFill.toUpperCase()} Canvas`;
+    bgDesc = item.bgRemoved ? `${bgName} (AI Cutout)` : `${bgName} Canvas`;
   }
 
   receiptBody.innerHTML = `
     <div class="receipt-rows">
       <div class="r-row">
+        <span class="k">Student / File</span>
+        <span class="v">${escapeHtml(item.baseName)}</span>
+      </div>
+      <div class="r-row">
         <span class="k">Resolution</span>
         <span class="v good">${targetW} &times; ${targetH} px</span>
       </div>
       <div class="r-row">
-        <span class="k">JPG File Size</span>
-        <span class="v ${underLimit ? "good" : "warn"}">${sizeKB} KB <span style="opacity:.65">(&le;${maxKB} KB)</span></span>
+        <span class="k">JPG Size</span>
+        <span class="v ${underLimit ? "good" : "warn"}">${sizeKB} KB (&le;${maxKB} KB)</span>
       </div>
       <div class="r-row">
         <span class="k">Background</span>
-        <span class="v ${bgRemovalSucceeded && bgFill !== "original" ? "good" : ""}">${bgDesc}</span>
-      </div>
-      <div class="r-row">
-        <span class="k">JPEG Quality</span>
-        <span class="v muted-val">${Math.round(quality * 100)}%</span>
+        <span class="v ${item.bgRemoved ? "good" : ""}">${bgDesc}</span>
       </div>
       <div class="r-row">
         <span class="k">Status</span>
@@ -1933,57 +2640,120 @@ function finishUp(jpgBlob, pngBlob, quality, maxBytes, shouldCountStats) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          ${underLimit ? "Ready to Upload" : "Slightly above limit"}
+          ${underLimit ? "Ready" : "Close to limit"}
         </span>
       </div>
     </div>
   `;
-
-  setDownloadsEnabled(true);
-  updateWorkflow(3);
-
-  prevPhotoBtn.disabled = photoIndex <= 0;
-  nextPhotoBtn.disabled = photoIndex >= photoQueue.length - 1;
-  nextPhotoBtn.textContent =
-    photoIndex < photoQueue.length - 1 ? "Next →" : "Done";
-  queuePosition.textContent = `${photoIndex + 1} of ${photoQueue.length}`;
-
-  if (shouldCountStats) {
-    incrementGlobalCounters();
-  }
 }
 
-function setDownloadsEnabled(enabled) {
+function setSingleDownloadsEnabled(enabled) {
   [dlJpg, dlPng, dlPdf].forEach((b) => (b.disabled = !enabled));
 }
 
-/* ============ DOWNLOADS ============ */
+/* ============ DOWNLOADS (SINGLE & 1-CLICK CLASS ZIP / PDF) ============ */
 dlJpg.addEventListener("click", () => {
-  if (!finalJpgBlob) return;
-  downloadBlob(finalJpgBlob, `${originalFileName}_${targetW}x${targetH}.jpg`);
+  const item = batchItems[selectedIndex];
+  if (!item || !item.jpgBlob) return;
+  downloadBlob(item.jpgBlob, `${item.baseName}_${targetW}x${targetH}.jpg`);
 });
 
-dlPng.addEventListener("click", () => {
-  if (!finalPngBlob) return;
-  downloadBlob(finalPngBlob, `${originalFileName}_${targetW}x${targetH}.png`);
+dlPng.addEventListener("click", async () => {
+  const item = batchItems[selectedIndex];
+  if (!item || !item.jpgBlob) return;
+  const img = await blobToImage(item.jpgBlob);
+  const c = document.createElement("canvas");
+  c.width = targetW;
+  c.height = targetH;
+  c.getContext("2d").drawImage(img, 0, 0, targetW, targetH);
+  c.toBlob((pngBlob) => {
+    if (pngBlob) downloadBlob(pngBlob, `${item.baseName}_${targetW}x${targetH}.png`);
+    c.width = 0;
+    c.height = 0;
+  }, "image/png");
 });
 
-dlPdf.addEventListener("click", () => {
-  if (!finalJpgBlob) return;
-  const reader = new FileReader();
-  reader.onload = function (e) {
+dlPdf.addEventListener("click", async () => {
+  const item = batchItems[selectedIndex];
+  if (!item || !item.jpgBlob) return;
+  const dataUrl = await blobToDataUrl(item.jpgBlob);
+  const { jsPDF } = window.jspdf;
+  const orientation = targetW > targetH ? "landscape" : "portrait";
+  const pdf = new jsPDF({ orientation, unit: "px", format: [targetW, targetH] });
+  pdf.addImage(dataUrl, "JPEG", 0, 0, targetW, targetH);
+  pdf.save(`${item.baseName}_${targetW}x${targetH}.pdf`);
+});
+
+/* 1-Click Download All as ZIP */
+downloadZipBtn.addEventListener("click", async () => {
+  const doneItems = batchItems.filter((x) => x.status === "done" && x.jpgBlob);
+  if (!doneItems.length || !window.JSZip) return;
+
+  const origText = downloadZipLabel.textContent;
+  downloadZipBtn.disabled = true;
+  downloadZipLabel.textContent = "Creating ZIP Archive…";
+
+  try {
+    const zip = new window.JSZip();
+    const usedNames = new Map();
+
+    doneItems.forEach((item) => {
+      let name = `${item.baseName}_${targetW}x${targetH}.jpg`;
+      const count = usedNames.get(name) || 0;
+      if (count > 0) {
+        name = `${item.baseName}_${count + 1}_${targetW}x${targetH}.jpg`;
+      }
+      usedNames.set(`${item.baseName}_${targetW}x${targetH}.jpg`, count + 1);
+      zip.file(name, item.jpgBlob);
+    });
+
+    const zipBlob = await zip.generateAsync({ type: "blob" });
+    downloadBlob(zipBlob, `Class_Photos_${targetW}x${targetH}_${doneItems.length}pcs.zip`);
+  } catch (err) {
+    alert("Could not generate ZIP file: " + err.message);
+  } finally {
+    downloadZipBtn.disabled = false;
+    downloadZipLabel.textContent = origText;
+  }
+});
+
+/* 1-Click Multi-Page Class PDF */
+downloadBatchPdfBtn.addEventListener("click", async () => {
+  const doneItems = batchItems.filter((x) => x.status === "done" && x.jpgBlob);
+  if (!doneItems.length) return;
+
+  downloadBatchPdfBtn.disabled = true;
+  const prevLabel = downloadBatchPdfBtn.textContent;
+  downloadBatchPdfBtn.textContent = "Building PDF…";
+
+  try {
     const { jsPDF } = window.jspdf;
     const orientation = targetW > targetH ? "landscape" : "portrait";
-    const pdf = new jsPDF({
-      orientation,
-      unit: "px",
-      format: [targetW, targetH],
-    });
-    pdf.addImage(e.target.result, "JPEG", 0, 0, targetW, targetH);
-    pdf.save(`${originalFileName}_${targetW}x${targetH}.pdf`);
-  };
-  reader.readAsDataURL(finalJpgBlob);
+    const pdf = new jsPDF({ orientation, unit: "px", format: [targetW, targetH] });
+
+    for (let i = 0; i < doneItems.length; i++) {
+      if (i > 0) pdf.addPage([targetW, targetH], orientation);
+      const dataUrl = await blobToDataUrl(doneItems[i].jpgBlob);
+      pdf.addImage(dataUrl, "JPEG", 0, 0, targetW, targetH);
+    }
+
+    pdf.save(`Class_Batch_${doneItems.length}_Photos.pdf`);
+  } catch (err) {
+    alert("Could not generate batch PDF: " + err.message);
+  } finally {
+    downloadBatchPdfBtn.disabled = false;
+    downloadBatchPdfBtn.textContent = prevLabel;
+  }
 });
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -1993,10 +2763,10 @@ function downloadBlob(blob, filename) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
-/* ============ STATS COUNTER (SHARED + LOCAL FALLBACK) ============ */
+/* ============ STATS COUNTER ============ */
 const COUNTER_BASE = "https://countapi.mileshilliard.com/api/v1";
 const TOTAL_KEY = "tayyab_nawaz_pic_tool_total_v1";
 const LOCAL_TOTAL_KEY = "tn_pic_tool_local_total";
