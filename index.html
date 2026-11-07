@@ -381,91 +381,6 @@
 
   .spec-pill b { color: var(--coral); }
 
-  /* Quick 1-Click Portal Preset Buttons */
-  .quick-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    max-width: 1080px;
-    margin: 11px auto 2px;
-  }
-
-  .qp-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    background: var(--paper);
-    border: 1.5px solid var(--line);
-    border-radius: 10px;
-    padding: 7px 12px;
-    font-size: 0.76rem;
-    color: var(--navy);
-    cursor: pointer;
-    transition: all 0.16s ease;
-    text-align: left;
-    line-height: 1.3;
-    box-shadow: 0 1px 3px rgba(27, 58, 75, 0.04);
-  }
-
-  .qp-btn:hover {
-    border-color: var(--teal);
-    background: #FFFFFF;
-    transform: translateY(-1px);
-  }
-
-  .qp-btn .qp-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    border: 2px solid var(--muted);
-    flex-shrink: 0;
-    transition: all 0.16s ease;
-  }
-
-  .qp-btn b {
-    font-weight: 700;
-    color: var(--navy);
-  }
-
-  .qp-btn span {
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-  }
-
-  .qp-btn.active {
-    background: rgba(45, 125, 110, 0.09);
-    border-color: var(--teal);
-    box-shadow: 0 3px 10px rgba(45, 125, 110, 0.13);
-  }
-
-  .qp-btn.active .qp-dot {
-    background: var(--teal);
-    border-color: var(--teal);
-    box-shadow: 0 0 0 3px rgba(45, 125, 110, 0.18);
-  }
-
-  .qp-btn.active span {
-    color: var(--teal);
-    font-weight: 600;
-  }
-
-  @media (max-width: 640px) {
-    .quick-presets {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-    }
-    .qp-btn {
-      padding: 8px 11px;
-      font-size: 0.73rem;
-    }
-    .qp-btn span {
-      font-size: 0.67rem;
-    }
-  }
-
   .stats-strip {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 175px));
@@ -1721,24 +1636,10 @@
   <h2>Resize, Compress &amp; Change Background</h2>
   <p class="lead">Prepare student registration photos to exact official requirements for <b>PECTAA (5th/8th Class)</b>, <b>9th, 10th BISE Boards Registration</b> &amp; <b>CM Youth Games portals etc.</b> single photo or full class batch in 1 click.</p>
 
-  <div class="quick-presets" role="group" aria-label="Official Portal Quick Presets">
-    <button type="button" class="qp-btn active" data-preset="600x800x25">
-      <i class="qp-dot"></i>
-      <div><b>PECTAA Grade 5/8:</b> <span>White background &middot; 10&ndash;25 KB</span></div>
-    </button>
-    <button type="button" class="qp-btn" data-preset="300x400x20">
-      <i class="qp-dot"></i>
-      <div><b>BISE Board Registration 9th, 10th:</b> <span>White background &middot; JPG &middot; under 20 KB</span></div>
-    </button>
-    <button type="button" class="qp-btn" data-preset="600x800x256">
-      <i class="qp-dot"></i>
-      <div><b>Youth Games:</b> <span>JPG/PNG &middot; up to 256 KB</span></div>
-    </button>
-  </div>
-
   <div class="spec-pills">
     <span class="spec-pill">Size <b id="pillDim">600 &times; 800 px</b></span>
     <span class="spec-pill">Limit <b id="pillKb">10&ndash;25 KB</b></span>
+    <span class="spec-pill">Portals <b>PECTAA / 9th-10th BISE / Youth Games</b></span>
     <span class="spec-pill">Batch <b>JPG / ZIP / PDF</b></span>
     <span class="spec-pill">100% Free <b>No Login / Sign Up Required</b></span>
   </div>
@@ -2182,7 +2083,6 @@ const pillDim = document.getElementById("pillDim");
 const pillKb = document.getElementById("pillKb");
 const frameBefore = document.getElementById("frameBefore");
 const frameAfter = document.getElementById("frameAfter");
-const quickPresetBtns = document.querySelectorAll(".qp-btn");
 
 const canvas = document.getElementById("workCanvas");
 const ctx = canvas.getContext("2d");
@@ -2219,10 +2119,6 @@ function syncHeaderPills() {
   pillKb.innerHTML = formatKbLimitHtml();
   maxKbLabel.innerHTML = formatKbLimitHtml();
   mobileSpecSummary.textContent = `${targetW}×${targetH} · ${formatKbLimitPlain()} · ${bgName}`;
-
-  quickPresetBtns.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.preset === presetSelect.value);
-  });
 
   const g = gcd(targetW, targetH);
   const rw = Math.round(targetW / g);
@@ -2271,12 +2167,6 @@ presetSelect.addEventListener("change", () => {
   applyPresetByValue(presetSelect.value);
 });
 
-quickPresetBtns.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    applyPresetByValue(btn.dataset.preset);
-  });
-});
-
 [inputWidth, inputHeight].forEach((inp) => {
   inp.addEventListener("change", () => {
     const w = Math.min(2400, Math.max(100, parseInt(inputWidth.value, 10) || 600));
@@ -2298,7 +2188,6 @@ maxKbRange.addEventListener("input", () => {
   maxKbLabel.innerHTML = formatKbLimitHtml();
   pillKb.innerHTML = formatKbLimitHtml();
   mobileSpecSummary.textContent = `${targetW}×${targetH} · ${formatKbLimitPlain()} · ${bgName}`;
-  quickPresetBtns.forEach((b) => b.classList.remove("active"));
 });
 
 maxKbRange.addEventListener("change", () => {
