@@ -1,8 +1,9 @@
-# Resize, Compress & Change Background — Pic-Tool
+# Resize, Compress & Change Background — PicTool
 
 A fast, mobile-friendly, 100% client-side **AI Photo Resizer, Compressor & White Background Tool** with **1-Click Full-Class Batch Processing**, built by **Tayyab Nawaz**.
 
-**Live Website:** https://iamtayyabnawaz.github.io/Pic-Tool/
+- **Live Website:** https://iamtayyabnawaz.github.io/PicTool/
+- **Contact:** [iamtayyabnawaz@gmail.com](mailto:iamtayyabnawaz@gmail.com)
 
 ## Key Features
 
