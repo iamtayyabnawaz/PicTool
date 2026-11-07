@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Resizer &amp; White Background Tool | Tayyab Nawaz</title>
+<meta name="description" content="Free automatic AI photo resizer and white background tool. Resize photos to 600×800 px, compress under 25 KB, and download as JPG, PNG, or PDF — 100% private in your browser.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+  import { FilesetResolver, ImageSegmenter } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.mjs";
+
+  let segmenterInstance = null;
+  let segmenterLoadPromise = null;
+
+  function getSegmenter() {
+    if (segmenterInstance) return Promise.resolve(segmenterInstance);
+
+    if (!segmenterLoadPromise) {
+      segmenterLoadPromise = FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm"
+      ).then((vision) =>
+        ImageSegmenter.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",
+            delegate: "CPU",
+          },
+          runningMode: "IMAGE",
+          outputCategoryMask: true,
+          outputConfidenceMasks: true,
+        })
+      ).then((seg) => {
+        segmenterInstance = seg;
+        return seg;
+      });
+    }
+
+    return segmenterLoadPromise;
+  }
+
+  window.__segmentPerson = function (imgEl) {
+    return getSegmenter().then((segmenter) => {
+      return new Promise((resolve, reject) => {
+        try {
+          segmenter.segment(imgEl, (result) => {
+            try {
+              let confidenceData = null;
+              let categoryData = null;
+              let width = 0;
+              let height = 0;
+
+              if (result.confidenceMasks && result.confidenceMasks.length > 0) {
+                const cm = result.confidenceMasks[0];
+                width = cm.width;
+                height = cm.height;
+                confidenceData = new Float32Array(cm.getAsFloat32Array());
+                result.confidenceMasks.forEach((m) => m.close && m.close());
+              }
+
+              if (result.categoryMask) {
+                const cat = result.categoryMask;
+                width = width || cat.width;
+                height = height || cat.height;
+                categoryData = new Uint8Array(cat.getAsUint8Array());
+                cat.close && cat.close();
+              }
+
+              if (!confidenceData && !categoryData) {
+                reject(new Error("No segmentation mask returned"));
+                return;
+              }
+
+              resolve({ confidenceData, categoryData, width, height });
+            } catch (innerErr) {
+              reject(innerErr);
+            }
+          });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  };
+
+  window.__bgModuleLoaded = true;
+</script>
+
+<style>
+  :root {
+    --navy: #1B3A4B;
+    --navy-light: #285268;
+    --cream: #F7F4ED;
+    --cream-dark: #EFEBE0;
+    --teal: #2D7D6E;
+    --teal-dark: #225F54;
+    --coral: #E8633C;
+    --coral-dark: #C94F2C;
+    --ink: #1A1A1A;
+    --paper: #FFFFFF;
+    --line: #D8D2C2;
+    --muted: #6B6456;
+    --ok: #2D7D6E;
+    --warn: #C94F2C;
+    --radius: 15px;
+    --shadow: 0 8px 24px -8px rgba(27, 58, 75, 0.14);
+    scroll-padding-top: 12px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::selection { background: rgba(45, 125, 110, 0.18); }
+
+  .bg-texture {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(45, 125, 110, 0.07), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(232, 99, 60, 0.07), transparent 40%);
+    pointer-events: none;
+  }
+
+  a { color: inherit; }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  summary:focus-visible {
+    outline: 3px solid #3A8279;
+    outline-offset: 2px;
+  }
+
+  /* ===== Header ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px clamp(16px, 4vw, 40px);
+    border-bottom: 1px solid var(--line);
+    background: rgba(247, 244, 237, 0.88);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(27, 58, 75, 0.2);
+  }
+
+  .brand-mark svg { width: 22px; height: 22px; }
+
+  .brand-text h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.18rem;
+    margin: 0;
+    color: var(--navy);
+    letter-spacing: -0.01em;
+  }
+
+  .brand-text span {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--navy);
+    color: var(--cream);
+    padding: 8px 15px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: transform 0.15s ease, background 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .header-badge:hover {
+    background: var(--teal);
+    transform: translateY(-1px);
+  }
+
+  .header-badge svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* ===== Hero ===== */
+  .hero {
+    padding: 16px clamp(16px, 4vw, 40px) 6px;
+    max-width: 1280px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: inline-block;
+    border: 1px solid var(--teal);
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: rgba(45, 125, 110, 0.05);
+  }
+
+  .hero h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.15rem);
+    line-height: 1.12;
+    margin: 2px 0 6px;
+    color: var(--navy);
+    letter-spacing: -0.01em;
+  }
+
+  .hero p.lead {
+    font-size: 0.88rem;
+    color: var(--muted);
+    max-width: 620px;
+    margin: 0 auto;
+  }
+
+  .spec-pills {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .spec-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    border-radius: 8px;
+    color: var(--navy);
+    font-weight: 500;
+  }
+
+  .spec-pill b { color: var(--coral); }
+
+  .stats-strip {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .stat-box {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 8px 18px;
+    min-width: 135px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .stat-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 1.18rem;
+    color: var(--navy);
+    line-height: 1.05;
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* ===== Main Workspace ===== */
+  main {
+    max-width: 1420px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 12px clamp(14px, 3vw, 32px) 24px;
+    flex: 1;
+  }
+
+  /* Workflow Bar */
+  .workflow-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    max-width: 780px;
+    margin: 0 auto 14px;
+    padding: 9px 18px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(27, 58, 75, 0.045);
+  }
+
+  .workflow-step {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--muted);
+    opacity: 0.72;
+    transition: opacity 0.2s ease, color 0.2s ease;
+  }
+
+  .workflow-step b {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--navy);
+  }
+
+  .workflow-step small {
+    display: block;
+    font-size: 0.65rem;
+    margin-top: 1px;
+  }
+
+  .step-number {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    font-size: 0.76rem;
+    font-weight: 800;
+    background: #fff;
+    flex-shrink: 0;
+  }
+
+  .workflow-step.is-current,
+  .workflow-step.is-done {
+    opacity: 1;
+  }
+
+  .workflow-step.is-current .step-number {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(45, 125, 110, 0.14);
+  }
+
+  .workflow-step.is-done .step-number {
+    background: #E3F2ED;
+    border-color: #B9D9CD;
+    color: #28695F;
+  }
+
+  .step-connector {
+    height: 1px;
+    width: clamp(18px, 5vw, 60px);
+    background: var(--line);
+  }
+
+  /* 3-Column Balanced Grid */
+  .tool-grid {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.85fr) minmax(360px, 1.4fr) minmax(260px, 0.9fr);
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  @media (hover: hover) {
+    .panel:hover {
+      border-color: #C9D8D3;
+      box-shadow: 0 10px 26px rgba(27, 58, 75, 0.09);
+    }
+  }
+
+  .panel-head {
+    padding: 12px 16px 10px;
+    border-bottom: 1px dashed var(--line);
+  }
+
+  .panel-head .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-head h3 {
+    font-family: 'Fraunces', serif;
+    margin: 2px 0 0;
+    color: var(--navy);
+    font-size: 1.06rem;
+  }
+
+  /* ===== Left Panel: Settings & Presets ===== */
+  .settings-body {
+    padding: 12px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field-label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--navy);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .field-label span.hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    font-size: 0.68rem;
+    color: var(--teal);
+  }
+
+  select,
+  input[type="number"] {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .dim-inputs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .dim-sep {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--teal);
+    cursor: pointer;
+    margin: 2px 0;
+  }
+
+  .bg-swatches {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .swatch-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 2px solid var(--line);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: transform 0.12s ease, border-color 0.12s ease;
+  }
+
+  .swatch-btn.active {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 2px rgba(45, 125, 110, 0.25);
+    transform: scale(1.06);
+  }
+
+  .swatch-orig {
+    font-size: 0.68rem;
+    font-weight: 600;
+    width: auto;
+    padding: 0 9px;
+    background: var(--cream);
+    color: var(--navy);
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    background: #FAF8F3;
+    border: 1px solid #EAE4D6;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+  }
+
+  .toggle-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--teal);
+    cursor: pointer;
+  }
+
+  .reset-defaults-btn {
+    margin-top: auto;
+    background: transparent;
+    border: 1px dashed var(--line);
+    color: var(--muted);
+    border-radius: 9px;
+    padding: 7px 10px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .reset-defaults-btn:hover {
+    border-color: var(--navy);
+    color: var(--navy);
+    background: var(--cream);
+  }
+
+  /* ===== Center Panel: Dropzone & Preview ===== */
+  .dropzone {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    min-height: 340px;
+    transition: background 0.15s ease;
+  }
+
+  .dropzone.drag-over {
+    outline: 2px dashed var(--teal);
+    outline-offset: -8px;
+    background: #EEF7F3;
+  }
+
+  .dz-inner {
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .dz-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border-radius: 15px;
+    background: var(--cream);
+    border: 1.5px dashed var(--teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dz-icon svg {
+    width: 26px;
+    height: 26px;
+    color: var(--teal);
+  }
+
+  .dz-inner h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    margin: 0 0 6px;
+    color: var(--navy);
+  }
+
+  .dz-inner p {
+    color: var(--muted);
+    font-size: 0.84rem;
+    margin: 0 0 16px;
+    max-width: 310px;
+  }
+
+  .pick-btn {
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.86rem;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .pick-btn:hover {
+    background: var(--teal-dark);
+    transform: translateY(-1px);
+  }
+
+  input[type="file"] { display: none; }
+
+  /* Preview State */
+  .preview-wrap {
+    display: none;
+    padding: 14px 16px;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .preview-wrap.active {
+    display: flex;
+  }
+
+  .preview-container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+    flex: 1;
+  }
+
+  .preview-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .preview-card h4 {
+    margin: 0;
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--navy);
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .preview-img-frame {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    max-height: 310px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background:
+      linear-gradient(45deg, #f3f0e8 25%, transparent 25%),
+      linear-gradient(-45deg, #f3f0e8 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #f3f0e8 75%),
+      linear-gradient(-45deg, transparent 75%, #f3f0e8 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .preview-img-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+  }
+
+  .processing-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    padding: 10px 8px 4px;
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--line);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .photo-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #EFEBE0;
+  }
+
+  .change-photo {
+    font-size: 0.78rem;
+    color: var(--teal);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 6px 2px;
+  }
+
+  .queue-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .queue-position {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 0 4px;
+  }
+
+  .nav-btn {
+    border: 0;
+    border-radius: 8px;
+    background: var(--teal);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.74rem;
+    padding: 7px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .nav-btn.secondary {
+    background: var(--cream-dark);
+    color: var(--navy);
+  }
+
+  .nav-btn:hover:not(:disabled) {
+    filter: brightness(0.93);
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
+  /* ===== Right Panel: Specifications & Downloads ===== */
+  .receipt-body {
+    padding: 10px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .receipt-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .r-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid #EFEBE0;
+    font-size: 0.8rem;
+    gap: 8px;
+  }
+
+  .r-row:last-child { border-bottom: none; }
+  .r-row .k { color: var(--muted); }
+  .r-row .v {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--ink);
+    text-align: right;
+  }
+  .r-row .v.good { color: var(--ok); }
+  .r-row .v.warn { color: var(--warn); }
+  .r-row .v.muted-val { color: var(--muted); font-weight: 500; }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ok);
+  }
+
+  .status-chip.warn { color: var(--warn); }
+  .status-chip svg { width: 14px; height: 14px; }
+
+  .empty-receipt {
+    padding: 22px 12px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .empty-receipt svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.45;
+    margin: 0 auto 8px;
+    display: block;
+  }
+
+  .receipt-foot {
+    border-top: 1px dashed var(--line);
+    padding: 12px 16px 14px;
+    margin-top: auto;
+    background: #FCFBF8;
+  }
+
+  .download-label {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .download-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+
+  .dl-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: var(--cream);
+    border: 1px solid var(--line);
+    color: var(--navy);
+    padding: 10px 6px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .dl-btn small {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 500;
+    opacity: 0.75;
+  }
+
+  .dl-btn:hover:not(:disabled) {
+    background: var(--coral);
+    color: #fff;
+    border-color: var(--coral);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(232, 99, 60, 0.25);
+  }
+
+  .dl-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Quick Help & Footer */
+  .quick-help {
+    max-width: 980px;
+    margin: 14px auto 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.82);
+    font-size: 0.8rem;
+  }
+
+  .quick-help summary {
+    cursor: pointer;
+    padding: 11px 16px;
+    font-weight: 700;
+    color: var(--navy);
+    list-style: none;
+    user-select: none;
+  }
+
+  .quick-help summary::-webkit-details-marker { display: none; }
+  .quick-help summary::after {
+    content: "+";
+    float: right;
+    font-size: 1.1rem;
+    color: var(--teal);
+  }
+  .quick-help[open] summary::after { content: "−"; }
+
+  .help-content {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 16px 14px;
+  }
+
+  .help-content div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #F8F6F0;
+  }
+
+  .help-content b { color: var(--teal); }
+  .help-content span { color: var(--muted); line-height: 1.45; }
+
+  .hint-note {
+    max-width: 980px;
+    margin: 10px auto 0;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.45;
+  }
+
+  .hint-note b { color: var(--navy); }
+
+  canvas { display: none; }
+
+  footer {
+    text-align: center;
+    padding: 14px 18px 20px;
+    font-size: 0.76rem;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    background: rgba(247, 244, 237, 0.6);
+  }
+
+  footer strong { color: var(--navy); }
+
+  /* Responsive Breakpoints */
+  @media (max-width: 1040px) {
+    .tool-grid {
+      grid-template-columns: 1fr;
+    }
+    .dropzone {
+      min-height: 260px;
+    }
+    .tool-grid > .panel:nth-child(2) { order: 1; }
+    .tool-grid > .panel:nth-child(3) { order: 2; }
+    .tool-grid > .panel:nth-child(1) { order: 3; }
+  }
+
+  @media (max-width: 700px) {
+    .workflow-bar {
+      gap: 6px;
+      padding: 8px 10px;
+    }
+    .workflow-step b { font-size: 0.7rem; }
+    .workflow-step small { font-size: 0.58rem; white-space: nowrap; }
+    .step-number { width: 24px; height: 24px; font-size: 0.7rem; }
+    .step-connector { width: 12px; }
+    .help-content { grid-template-columns: 1fr; }
+    .preview-container { gap: 8px; }
+    .preview-img-frame { max-height: 260px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-texture"></div>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="#F7F4ED" stroke-width="1.7"/>
+        <circle cx="12" cy="10" r="2.8" stroke="#F7F4ED" stroke-width="1.6"/>
+        <path d="M6.8 18.2c1.1-2.5 3-3.7 5.2-3.7s4.1 1.2 5.2 3.7" stroke="#F7F4ED" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>Tayyab Nawaz</h1>
+      <span>Photo Spec Tool</span>
+    </div>
+  </div>
+
+  <div class="header-badge" title="100% Client-Side Processing">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    100% Private &middot; Runs in Browser
+  </div>
+</header>
+
+<section class="hero">
+  <span class="eyebrow">Free &middot; Auto AI &middot; No Login</span>
+  <h2>Photo Resizer &amp; White Background Tool</h2>
+  <p class="lead">Automatically replace backgrounds with clean white, resize to exact dimensions, and compress under portal limits.</p>
+
+  <div class="spec-pills">
+    <span class="spec-pill">Target <b id="pillDim">600 &times; 800 px</b></span>
+    <span class="spec-pill">Max Size <b id="pillKb">&le; 25 KB</b></span>
+    <span class="spec-pill">Format <b>JPG / PNG / PDF</b></span>
+    <span class="spec-pill">Privacy <b>On-Device</b></span>
+  </div>
+
+  <div class="stats-strip" id="statsStrip">
+    <div class="stat-box">
+      <span class="stat-num" id="statTotal">0</span>
+      <span class="stat-label">Total Photos Processed</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num" id="statToday">0</span>
+      <span class="stat-label">Processed Today</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num" id="statSession">0</span>
+      <span class="stat-label">Processed By You (Session)</span>
+    </div>
+  </div>
+</section>
+
+<main>
+  <div class="workflow-bar" aria-label="Photo workflow">
+    <div class="workflow-step is-current" data-step="1">
+      <span class="step-number">1</span>
+      <span><b>Upload</b><small>Choose photo(s)</small></span>
+    </div>
+    <span class="step-connector"></span>
+    <div class="workflow-step" data-step="2">
+      <span class="step-number">2</span>
+      <span><b>Review</b><small>Preview &amp; adjust</small></span>
+    </div>
+    <span class="step-connector"></span>
+    <div class="workflow-step" data-step="3">
+      <span class="step-number">3</span>
+      <span><b>Download</b><small>JPG, PNG, or PDF</small></span>
+    </div>
+  </div>
+
+  <div class="tool-grid">
+    <!-- Panel 1: Preset & Output Controls -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="label">CUSTOMIZE</span>
+        <h3>Preset &amp; Adjustments</h3>
+      </div>
+      <div class="settings-body">
+        <div class="field-group">
+          <label class="field-label" for="presetSelect">
+            Size Preset
+            <span class="hint">Auto</span>
+          </label>
+          <select id="presetSelect">
+            <option value="600x800x25" selected>Standard Portal (600 &times; 800 px &middot; &le;25 KB)</option>
+            <option value="600x600x50">Passport 2&times;2 in (600 &times; 600 px &middot; &le;50 KB)</option>
+            <option value="413x531x30">ID / CNIC 35&times;45 mm (413 &times; 531 px &middot; &le;30 KB)</option>
+            <option value="827x1063x100">High-Res Print (827 &times; 1063 px &middot; &le;100 KB)</option>
+            <option value="custom">Custom Dimensions &amp; Limit</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <span class="field-label">
+            Dimensions (px)
+            <span class="hint" id="aspectHint">3 : 4</span>
+          </span>
+          <div class="dim-inputs">
+            <input type="number" id="inputWidth" value="600" min="100" max="2400" aria-label="Target width in pixels">
+            <span class="dim-sep">&times;</span>
+            <input type="number" id="inputHeight" value="800" min="100" max="2400" aria-label="Target height in pixels">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="maxKbRange">
+            Max JPG File Size
+            <span class="hint" id="maxKbLabel">&le; 25 KB</span>
+          </label>
+          <input type="range" id="maxKbRange" min="10" max="200" step="5" value="25">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label" for="fitModeSelect"> Framing Mode </label>
+          <select id="fitModeSelect">
+            <option value="contain" selected>Fit Full Photo (No cropping)</option>
+            <option value="cover">Fill Frame (Smart top-center crop)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <span class="field-label">Background Fill</span>
+          <div class="bg-swatches" role="group" aria-label="Background color choices">
+            <button type="button" class="swatch-btn active" data-bg="#FFFFFF" style="background:#FFFFFF;" title="Pure White (#FFFFFF)" aria-label="Pure White background"></button>
+            <button type="button" class="swatch-btn" data-bg="#E6F2FF" style="background:#E6F2FF;" title="Passport Light Blue (#E6F2FF)" aria-label="Light Blue background"></button>
+            <button type="button" class="swatch-btn" data-bg="#F3F4F6" style="background:#F3F4F6;" title="Soft Gray (#F3F4F6)" aria-label="Soft Gray background"></button>
+            <button type="button" class="swatch-btn swatch-orig" data-bg="original" title="Keep original photo background">Original</button>
+          </div>
+        </div>
+
+        <label class="toggle-row" for="smoothEdgesToggle">
+          <span>Smooth AI Edge Feathering</span>
+          <input type="checkbox" id="smoothEdgesToggle" checked>
+        </label>
+
+        <button type="button" class="reset-defaults-btn" id="resetDefaultsBtn">
+          Reset to Default (600&times;800 &middot; &le;25 KB)
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel 2: Upload & Before/After Preview -->
+    <div class="panel">
+      <div class="dropzone" id="dropzone">
+        <div class="dz-inner" id="dzInner">
+          <div class="dz-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M12 16V4M12 4 8 8M12 4l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Select Image(s)</h3>
+          <p>Click to browse or drag &amp; drop one or multiple photos here — JPG, PNG, or WEBP</p>
+          <button class="pick-btn" id="pickBtn" type="button">Choose Photo</button>
+          <input type="file" id="fileInput" accept="image/png, image/jpeg, image/webp" multiple aria-label="Choose one or more photos">
+        </div>
+
+        <div class="preview-wrap" id="previewWrap">
+          <div class="preview-container">
+            <div class="preview-card">
+              <h4>Before</h4>
+              <div class="preview-img-frame" id="frameBefore">
+                <img id="previewImgBefore" alt="Original uploaded photo">
+              </div>
+            </div>
+            <div class="preview-card">
+              <h4>After</h4>
+              <div class="preview-img-frame" id="frameAfter">
+                <img id="previewImg" alt="Processed output preview">
+              </div>
+            </div>
+          </div>
+
+          <div class="processing-row" id="processingRow" role="status" aria-live="polite" aria-atomic="true" style="display:none;">
+            <span class="spinner"></span>
+            <span id="processingText">Processing photo…</span>
+          </div>
+
+          <div class="photo-nav">
+            <button class="change-photo" id="changeBtn" type="button">+ Choose photo(s)</button>
+            <div class="queue-controls">
+              <button class="nav-btn secondary" id="prevPhotoBtn" type="button" disabled aria-label="Previous photo">&larr;</button>
+              <span id="queuePosition" class="queue-position" aria-live="polite">No photos</span>
+              <button class="nav-btn" id="nextPhotoBtn" type="button" disabled>Next &rarr;</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel 3: Specifications & Downloads -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="label">PHOTO DETAILS</span>
+        <h3>Specifications</h3>
+      </div>
+
+      <div class="receipt-body" id="receiptBody">
+        <div class="empty-receipt">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M6 2h9l3 3v17H6z"/>
+            <path d="M9 9h6M9 13h6M9 17h3"/>
+          </svg>
+          Upload a photo to automatically format and view output specifications.
+        </div>
+      </div>
+
+      <div class="receipt-foot">
+        <div class="download-label">Download Formatted Photo</div>
+        <div class="download-row">
+          <button class="dl-btn" id="dlJpg" type="button" title="Download compressed JPG" disabled>
+            <span>JPG</span>
+            <small id="dlJpgSize">Compressed</small>
+          </button>
+          <button class="dl-btn" id="dlPng" type="button" title="Download lossless PNG" disabled>
+            <span>PNG</span>
+            <small>Lossless</small>
+          </button>
+          <button class="dl-btn" id="dlPdf" type="button" title="Download print-ready PDF" disabled>
+            <span>PDF</span>
+            <small>Document</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <details class="quick-help">
+    <summary>How to use this tool</summary>
+    <div class="help-content">
+      <div>
+        <b>1. Select Photo(s)</b>
+        <span>Drop or select one or multiple JPG, PNG, or WEBP portraits. Standard 600&times;800 px (&le;25 KB) is pre-selected.</span>
+      </div>
+      <div>
+        <b>2. Review &amp; Adjust</b>
+        <span>AI removes the background locally in your browser. Tweak presets, size limits, or edge smoothing anytime.</span>
+      </div>
+      <div>
+        <b>3. Instant Download</b>
+        <span>Save your ready-to-upload file as JPG (compressed under limit), PNG, or PDF with a single click.</span>
+      </div>
+    </div>
+  </details>
+
+  <p class="hint-note">
+    Tip: <b>A clear, well-lit front-facing portrait</b> gives the cleanest white background cutout. Everything runs locally on your device — your photos are never uploaded to any server.
+  </p>
+</main>
+
+<footer>
+  Built by <strong>Tayyab Nawaz</strong> &middot; Photo Resizer &amp; White Background Tool &middot; 100% Client-Side Privacy
+</footer>
+
+<canvas id="workCanvas"></canvas>
+
+<script>
+/* ============ STATE & SETTINGS ============ */
+let targetW = 600;
+let targetH = 800;
+let maxKB = 25;
+let fitMode = "contain";
+let bgFill = "#FFFFFF"; // hex color or 'original'
+let smoothEdges = true;
+
+let photoQueue = [];
+let photoIndex = 0;
+let currentSourceImg = null;
+let currentMaskResult = null;
+let bgRemovalSucceeded = false;
+let currentBeforeUrl = null;
+let currentAfterUrl = null;
+
+let finalJpgBlob = null;
+let finalPngBlob = null;
+let originalFileName = "photo";
+
+/* ============ DOM ELEMENTS ============ */
+const dropzone = document.getElementById("dropzone");
+const dzInner = document.getElementById("dzInner");
+const fileInput = document.getElementById("fileInput");
+const pickBtn = document.getElementById("pickBtn");
+const previewWrap = document.getElementById("previewWrap");
+const previewImgBefore = document.getElementById("previewImgBefore");
+const previewImg = document.getElementById("previewImg");
+const processingRow = document.getElementById("processingRow");
+const processingText = document.getElementById("processingText");
+const changeBtn = document.getElementById("changeBtn");
+const prevPhotoBtn = document.getElementById("prevPhotoBtn");
+const nextPhotoBtn = document.getElementById("nextPhotoBtn");
+const queuePosition = document.getElementById("queuePosition");
+const receiptBody = document.getElementById("receiptBody");
+
+const dlJpg = document.getElementById("dlJpg");
+const dlPng = document.getElementById("dlPng");
+const dlPdf = document.getElementById("dlPdf");
+const dlJpgSize = document.getElementById("dlJpgSize");
+
+const presetSelect = document.getElementById("presetSelect");
+const inputWidth = document.getElementById("inputWidth");
+const inputHeight = document.getElementById("inputHeight");
+const aspectHint = document.getElementById("aspectHint");
+const maxKbRange = document.getElementById("maxKbRange");
+const maxKbLabel = document.getElementById("maxKbLabel");
+const fitModeSelect = document.getElementById("fitModeSelect");
+const swatchBtns = document.querySelectorAll(".swatch-btn");
+const smoothEdgesToggle = document.getElementById("smoothEdgesToggle");
+const resetDefaultsBtn = document.getElementById("resetDefaultsBtn");
+
+const pillDim = document.getElementById("pillDim");
+const pillKb = document.getElementById("pillKb");
+const frameBefore = document.getElementById("frameBefore");
+const frameAfter = document.getElementById("frameAfter");
+
+const canvas = document.getElementById("workCanvas");
+const ctx = canvas.getContext("2d");
+
+/* ============ WORKFLOW INDICATOR ============ */
+function updateWorkflow(step) {
+  const steps = document.querySelectorAll(".workflow-step");
+  steps.forEach((el, idx) => {
+    const s = idx + 1;
+    el.classList.toggle("is-current", s === step);
+    el.classList.toggle("is-done", s < step);
+  });
+}
+
+/* ============ SETTINGS HANDLERS ============ */
+function gcd(a, b) {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+function syncHeaderPills() {
+  pillDim.innerHTML = `${targetW} &times; ${targetH} px`;
+  pillKb.innerHTML = `&le; ${maxKB} KB`;
+  maxKbLabel.innerHTML = `&le; ${maxKB} KB`;
+  const g = gcd(targetW, targetH);
+  const rw = Math.round(targetW / g);
+  const rh = Math.round(targetH / g);
+  aspectHint.textContent = rw <= 30 && rh <= 30 ? `${rw} : ${rh}` : `${(targetW / targetH).toFixed(2)}`;
+  const cssAspect = `${targetW} / ${targetH}`;
+  frameBefore.style.aspectRatio = cssAspect;
+  frameAfter.style.aspectRatio = cssAspect;
+}
+
+function rerenderIfLoaded() {
+  syncHeaderPills();
+  if (currentSourceImg) {
+    renderProcessedOutput(currentSourceImg, currentMaskResult, false);
+  }
+}
+
+presetSelect.addEventListener("change", () => {
+  const val = presetSelect.value;
+  if (val !== "custom") {
+    const [w, h, kb] = val.split("x").map(Number);
+    targetW = w;
+    targetH = h;
+    maxKB = kb;
+    inputWidth.value = w;
+    inputHeight.value = h;
+    maxKbRange.value = kb;
+    rerenderIfLoaded();
+  }
+});
+
+[inputWidth, inputHeight].forEach((inp) => {
+  inp.addEventListener("change", () => {
+    const w = Math.min(2400, Math.max(100, parseInt(inputWidth.value, 10) || 600));
+    const h = Math.min(2400, Math.max(100, parseInt(inputHeight.value, 10) || 800));
+    inputWidth.value = w;
+    inputHeight.value = h;
+    targetW = w;
+    targetH = h;
+    presetSelect.value = "custom";
+    rerenderIfLoaded();
+  });
+});
+
+maxKbRange.addEventListener("input", () => {
+  maxKB = parseInt(maxKbRange.value, 10) || 25;
+  maxKbLabel.innerHTML = `&le; ${maxKB} KB`;
+  pillKb.innerHTML = `&le; ${maxKB} KB`;
+});
+
+maxKbRange.addEventListener("change", () => {
+  maxKB = parseInt(maxKbRange.value, 10) || 25;
+  rerenderIfLoaded();
+});
+
+fitModeSelect.addEventListener("change", () => {
+  fitMode = fitModeSelect.value;
+  rerenderIfLoaded();
+});
+
+swatchBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    swatchBtns.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    bgFill = btn.dataset.bg;
+    rerenderIfLoaded();
+  });
+});
+
+smoothEdgesToggle.addEventListener("change", () => {
+  smoothEdges = smoothEdgesToggle.checked;
+  rerenderIfLoaded();
+});
+
+resetDefaultsBtn.addEventListener("click", () => {
+  presetSelect.value = "600x800x25";
+  targetW = 600;
+  targetH = 800;
+  maxKB = 25;
+  fitMode = "contain";
+  bgFill = "#FFFFFF";
+  smoothEdges = true;
+
+  inputWidth.value = 600;
+  inputHeight.value = 800;
+  maxKbRange.value = 25;
+  fitModeSelect.value = "contain";
+  smoothEdgesToggle.checked = true;
+  swatchBtns.forEach((b) => b.classList.toggle("active", b.dataset.bg === "#FFFFFF"));
+  rerenderIfLoaded();
+});
+
+/* ============ FILE UPLOAD & QUEUE ============ */
+pickBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  fileInput.click();
+});
+dzInner.addEventListener("click", () => fileInput.click());
+changeBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  fileInput.value = "";
+  fileInput.click();
+});
+
+prevPhotoBtn.addEventListener("click", () => {
+  if (photoIndex > 0) {
+    photoIndex -= 1;
+    handleFile(photoQueue[photoIndex]);
+  }
+});
+
+nextPhotoBtn.addEventListener("click", () => {
+  if (photoIndex < photoQueue.length - 1) {
+    photoIndex += 1;
+    handleFile(photoQueue[photoIndex]);
+  }
+});
+
+function loadPhotoQueue(files) {
+  photoQueue = Array.from(files || []).filter((f) => /image\/(jpeg|png|webp)/i.test(f.type));
+  photoIndex = 0;
+  if (!photoQueue.length) {
+    alert("Please select JPG, PNG, or WEBP photo(s).");
+    return;
+  }
+  handleFile(photoQueue[0]);
+}
+
+fileInput.addEventListener("change", (e) => {
+  if (e.target.files && e.target.files.length) {
+    loadPhotoQueue(e.target.files);
+  }
+});
+
+["dragenter", "dragover"].forEach((evt) => {
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.add("drag-over");
+  });
+});
+
+["dragleave", "drop"].forEach((evt) => {
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("drag-over");
+  });
+});
+
+dropzone.addEventListener("drop", (e) => {
+  const files = e.dataTransfer.files;
+  if (files && files.length) loadPhotoQueue(files);
+});
+
+/* ============ AI & IMAGE PROCESSING ============ */
+function downscaleForProcessing(file) {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    let settled = false;
+
+    const cleanupAndResolve = (val) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(objectUrl);
+      resolve(val);
+    };
+
+    const safetyTimer = setTimeout(() => cleanupAndResolve(file), 8000);
+
+    const img = new Image();
+    img.onload = () => {
+      const MAX_DIM = 1200;
+      const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+
+      try {
+        const tmpCanvas = document.createElement("canvas");
+        tmpCanvas.width = w;
+        tmpCanvas.height = h;
+        const tmpCtx = tmpCanvas.getContext("2d");
+        tmpCtx.fillStyle = "#FFFFFF";
+        tmpCtx.fillRect(0, 0, w, h);
+        tmpCtx.drawImage(img, 0, 0, w, h);
+        tmpCanvas.toBlob(
+          (blob) => {
+            clearTimeout(safetyTimer);
+            cleanupAndResolve(blob || file);
+          },
+          "image/jpeg",
+          0.9
+        );
+      } catch (err) {
+        clearTimeout(safetyTimer);
+        cleanupAndResolve(file);
+      }
+    };
+    img.onerror = () => {
+      clearTimeout(safetyTimer);
+      cleanupAndResolve(file);
+    };
+    img.src = objectUrl;
+  });
+}
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Timed out after ${Math.round(ms / 1000)}s`)), ms);
+    promise.then(
+      (val) => {
+        clearTimeout(timer);
+        resolve(val);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+function blobToImage(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not decode image"));
+    };
+    img.src = url;
+  });
+}
+
+function handleFile(file) {
+  originalFileName = file.name.replace(/\.[^.]+$/, "") || "photo";
+  queuePosition.textContent = `${photoIndex + 1} / ${photoQueue.length}`;
+  prevPhotoBtn.disabled = true;
+  nextPhotoBtn.disabled = true;
+  bgRemovalSucceeded = false;
+  currentMaskResult = null;
+
+  dzInner.style.display = "none";
+  previewWrap.classList.add("active");
+  processingRow.style.display = "flex";
+  previewImg.style.opacity = "0.32";
+  setDownloadsEnabled(false);
+  updateWorkflow(2);
+
+  receiptBody.innerHTML = `<div class="empty-receipt">Analyzing portrait &amp; preparing clean background…</div>`;
+
+  if (currentBeforeUrl) URL.revokeObjectURL(currentBeforeUrl);
+  currentBeforeUrl = URL.createObjectURL(file);
+  previewImgBefore.src = currentBeforeUrl;
+
+  processingText.textContent = "Preparing photo…";
+
+  const fallbackToOriginal = (msg) => {
+    bgRemovalSucceeded = false;
+    processingText.textContent = msg;
+    blobToImage(file)
+      .then((img) => {
+        currentSourceImg = img;
+        currentMaskResult = null;
+        renderProcessedOutput(img, null, true);
+      })
+      .catch(() => {
+        processingText.textContent = "Could not read this photo — please try another file.";
+      });
+  };
+
+  const runRemoval = () => {
+    const pipeline = downscaleForProcessing(file)
+      .then((smallBlob) => blobToImage(smallBlob))
+      .then((smallImg) => {
+        processingText.textContent = "Removing background with AI…";
+        return withTimeout(window.__segmentPerson(smallImg), 25000).then((maskResult) => ({
+          smallImg,
+          maskResult,
+        }));
+      });
+
+    withTimeout(pipeline, 35000)
+      .then(({ smallImg, maskResult }) => {
+        bgRemovalSucceeded = true;
+        currentSourceImg = smallImg;
+        currentMaskResult = maskResult;
+        processingText.textContent = "Applying background & compressing…";
+        renderProcessedOutput(smallImg, maskResult, true);
+      })
+      .catch((err) => {
+        console.warn("AI background removal fallback:", err);
+        fallbackToOriginal("AI model unavailable — resizing original photo…");
+      });
+  };
+
+  if (typeof window.__segmentPerson === "function") {
+    runRemoval();
+  } else {
+    let attempts = 0;
+    const waitTimer = setInterval(() => {
+      attempts++;
+      if (typeof window.__segmentPerson === "function") {
+        clearInterval(waitTimer);
+        runRemoval();
+      } else if (attempts > 50) {
+        clearInterval(waitTimer);
+        fallbackToOriginal("AI segmenter timed out loading — resizing original photo…");
+      }
+    }, 200);
+  }
+}
+
+/* Build an alpha-masked canvas of the person cutout */
+function createPersonCutoutCanvas(img, maskResult) {
+  const w = img.width;
+  const h = img.height;
+  const maskW = maskResult.width;
+  const maskH = maskResult.height;
+
+  // Build raw mask at model resolution
+  const rawMaskCanvas = document.createElement("canvas");
+  rawMaskCanvas.width = maskW;
+  rawMaskCanvas.height = maskH;
+  const rawMaskCtx = rawMaskCanvas.getContext("2d");
+  const maskImgData = rawMaskCtx.createImageData(maskW, maskH);
+  const mPixels = maskImgData.data;
+
+  if (maskResult.confidenceData) {
+    const conf = maskResult.confidenceData;
+    // Compare average of upper-frame border pixels (background) vs center portrait box (person)
+    let borderSum = 0, borderCount = 0;
+    for (let x = 0; x < maskW; x++) {
+      borderSum += conf[x];
+      borderCount++;
+    }
+    const halfH = Math.floor(maskH * 0.5);
+    for (let y = 1; y < halfH; y++) {
+      borderSum += conf[y * maskW] + conf[y * maskW + (maskW - 1)];
+      borderCount += 2;
+    }
+    const borderAvg = borderSum / Math.max(1, borderCount);
+
+    let centerSum = 0, centerCount = 0;
+    const x0 = Math.floor(maskW * 0.35), x1 = Math.ceil(maskW * 0.65);
+    const y0 = Math.floor(maskH * 0.35), y1 = Math.ceil(maskH * 0.75);
+    for (let y = y0; y < y1; y++) {
+      for (let x = x0; x < x1; x++) {
+        centerSum += conf[y * maskW + x];
+        centerCount++;
+      }
+    }
+    const centerAvg = centerSum / Math.max(1, centerCount);
+    const invert = borderAvg > centerAvg;
+
+    for (let i = 0; i < maskW * maskH; i++) {
+      let p = invert ? 1 - conf[i] : conf[i];
+      p = smoothEdges
+        ? Math.max(0, Math.min(1, (p - 0.32) / 0.36))
+        : (p >= 0.5 ? 1 : 0);
+      const alpha = Math.round(p * 255);
+      const idx = i * 4;
+      mPixels[idx] = 255;
+      mPixels[idx + 1] = 255;
+      mPixels[idx + 2] = 255;
+      mPixels[idx + 3] = alpha;
+    }
+  } else if (maskResult.categoryData) {
+    const cat = maskResult.categoryData;
+    for (let i = 0; i < maskW * maskH; i++) {
+      const isPerson = cat[i] <= 30;
+      const idx = i * 4;
+      mPixels[idx] = 255;
+      mPixels[idx + 1] = 255;
+      mPixels[idx + 2] = 255;
+      mPixels[idx + 3] = isPerson ? 255 : 0;
+    }
+  }
+
+  rawMaskCtx.putImageData(maskImgData, 0, 0);
+
+  // Upscale mask smoothly to source photo resolution
+  const fullMaskCanvas = document.createElement("canvas");
+  fullMaskCanvas.width = w;
+  fullMaskCanvas.height = h;
+  const fullMaskCtx = fullMaskCanvas.getContext("2d");
+  fullMaskCtx.imageSmoothingEnabled = true;
+  fullMaskCtx.imageSmoothingQuality = "high";
+  if (smoothEdges) {
+    const featherPx = Math.max(1, Math.round(Math.min(w, h) * 0.0035));
+    fullMaskCtx.filter = `blur(${featherPx}px)`;
+  }
+  fullMaskCtx.drawImage(rawMaskCanvas, 0, 0, w, h);
+  fullMaskCtx.filter = "none";
+
+  // Composite person with mask using destination-in
+  const personCanvas = document.createElement("canvas");
+  personCanvas.width = w;
+  personCanvas.height = h;
+  const personCtx = personCanvas.getContext("2d");
+  personCtx.drawImage(img, 0, 0, w, h);
+  personCtx.globalCompositeOperation = "destination-in";
+  personCtx.drawImage(fullMaskCanvas, 0, 0, w, h);
+  personCtx.globalCompositeOperation = "source-over";
+
+  return personCanvas;
+}
+
+function renderProcessedOutput(img, maskResult, shouldCountStats) {
+  canvas.width = targetW;
+  canvas.height = targetH;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // 1. Background fill
+  const useOriginalBg = bgFill === "original" || !maskResult;
+  ctx.fillStyle = bgFill === "original" ? "#FFFFFF" : bgFill;
+  ctx.fillRect(0, 0, targetW, targetH);
+
+  // 2. Compute framing geometry
+  let drawW, drawH, dx, dy;
+  if (fitMode === "cover") {
+    const scale = Math.max(targetW / img.width, targetH / img.height);
+    drawW = img.width * scale;
+    drawH = img.height * scale;
+    dx = (targetW - drawW) / 2;
+    // Slight upper bias for portraits so the head isn't cropped
+    dy = (targetH - drawH) * 0.25;
+  } else {
+    const scale = Math.min(targetW / img.width, targetH / img.height);
+    drawW = img.width * scale;
+    drawH = img.height * scale;
+    dx = (targetW - drawW) / 2;
+    dy = (targetH - drawH) / 2;
+  }
+
+  if (useOriginalBg) {
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+  } else {
+    const cutout = createPersonCutoutCanvas(img, maskResult);
+    ctx.drawImage(cutout, dx, dy, drawW, drawH);
+  }
+
+  // 3. Compress JPEG via binary search to maximize clarity while staying <= maxKB
+  const maxBytes = maxKB * 1024;
+  compressToTargetBinary(maxBytes, (jpgBlob, usedQuality) => {
+    finalJpgBlob = jpgBlob;
+    canvas.toBlob((pngBlob) => {
+      finalPngBlob = pngBlob;
+      finishUp(jpgBlob, pngBlob, usedQuality, maxBytes, shouldCountStats);
+    }, "image/png");
+  });
+}
+
+function canvasToJpegBlob(quality) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality);
+  });
+}
+
+async function compressToTargetBinary(maxBytes, callback) {
+  // First check high quality (92%) — if already <= maxBytes, use it right away!
+  const highBlob = await canvasToJpegBlob(0.92);
+  if (highBlob && highBlob.size <= maxBytes) {
+    callback(highBlob, 0.92);
+    return;
+  }
+
+  let low = 0.05;
+  let high = 0.90;
+  let bestBlob = highBlob;
+  let bestQ = 0.05;
+
+  for (let step = 0; step < 7; step++) {
+    const mid = (low + high) / 2;
+    const blob = await canvasToJpegBlob(mid);
+    if (!blob) break;
+    if (blob.size <= maxBytes) {
+      bestBlob = blob;
+      bestQ = mid;
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+
+  if (!bestBlob || bestBlob.size > maxBytes) {
+    const minBlob = await canvasToJpegBlob(0.05);
+    if (minBlob) {
+      bestBlob = minBlob;
+      bestQ = 0.05;
+    }
+  }
+
+  callback(bestBlob, bestQ);
+}
+
+function finishUp(jpgBlob, pngBlob, quality, maxBytes, shouldCountStats) {
+  if (currentAfterUrl) URL.revokeObjectURL(currentAfterUrl);
+  currentAfterUrl = URL.createObjectURL(jpgBlob);
+  previewImg.src = currentAfterUrl;
+  previewImg.style.opacity = "1";
+  processingRow.style.display = "none";
+
+  const sizeKB = (jpgBlob.size / 1024).toFixed(1);
+  const underLimit = jpgBlob.size <= maxBytes;
+  dlJpgSize.textContent = `${sizeKB} KB`;
+
+  let bgDesc = "Original photo";
+  if (bgFill !== "original") {
+    bgDesc = bgRemovalSucceeded
+      ? `${bgFill.toUpperCase()} (AI Cutout)`
+      : `${bgFill.toUpperCase()} Canvas`;
+  }
+
+  receiptBody.innerHTML = `
+    <div class="receipt-rows">
+      <div class="r-row">
+        <span class="k">Resolution</span>
+        <span class="v good">${targetW} &times; ${targetH} px</span>
+      </div>
+      <div class="r-row">
+        <span class="k">JPG File Size</span>
+        <span class="v ${underLimit ? "good" : "warn"}">${sizeKB} KB <span style="opacity:.65">(&le;${maxKB} KB)</span></span>
+      </div>
+      <div class="r-row">
+        <span class="k">Background</span>
+        <span class="v ${bgRemovalSucceeded && bgFill !== "original" ? "good" : ""}">${bgDesc}</span>
+      </div>
+      <div class="r-row">
+        <span class="k">JPEG Quality</span>
+        <span class="v muted-val">${Math.round(quality * 100)}%</span>
+      </div>
+      <div class="r-row">
+        <span class="k">Status</span>
+        <span class="status-chip ${underLimit ? "" : "warn"}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          ${underLimit ? "Ready to Upload" : "Slightly above limit"}
+        </span>
+      </div>
+    </div>
+  `;
+
+  setDownloadsEnabled(true);
+  updateWorkflow(3);
+
+  prevPhotoBtn.disabled = photoIndex <= 0;
+  nextPhotoBtn.disabled = photoIndex >= photoQueue.length - 1;
+  nextPhotoBtn.textContent =
+    photoIndex < photoQueue.length - 1 ? "Next →" : "Done";
+  queuePosition.textContent = `${photoIndex + 1} of ${photoQueue.length}`;
+
+  if (shouldCountStats) {
+    incrementGlobalCounters();
+  }
+}
+
+function setDownloadsEnabled(enabled) {
+  [dlJpg, dlPng, dlPdf].forEach((b) => (b.disabled = !enabled));
+}
+
+/* ============ DOWNLOADS ============ */
+dlJpg.addEventListener("click", () => {
+  if (!finalJpgBlob) return;
+  downloadBlob(finalJpgBlob, `${originalFileName}_${targetW}x${targetH}.jpg`);
+});
+
+dlPng.addEventListener("click", () => {
+  if (!finalPngBlob) return;
+  downloadBlob(finalPngBlob, `${originalFileName}_${targetW}x${targetH}.png`);
+});
+
+dlPdf.addEventListener("click", () => {
+  if (!finalJpgBlob) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const { jsPDF } = window.jspdf;
+    const orientation = targetW > targetH ? "landscape" : "portrait";
+    const pdf = new jsPDF({
+      orientation,
+      unit: "px",
+      format: [targetW, targetH],
+    });
+    pdf.addImage(e.target.result, "JPEG", 0, 0, targetW, targetH);
+    pdf.save(`${originalFileName}_${targetW}x${targetH}.pdf`);
+  };
+  reader.readAsDataURL(finalJpgBlob);
+});
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ============ STATS COUNTER (SHARED + LOCAL FALLBACK) ============ */
+const COUNTER_BASE = "https://countapi.mileshilliard.com/api/v1";
+const TOTAL_KEY = "tayyab_nawaz_pic_tool_total_v1";
+const LOCAL_TOTAL_KEY = "tn_pic_tool_local_total";
+
+function todayKey() {
+  const ymd = new Date().toISOString().slice(0, 10);
+  return `tayyab_nawaz_pic_tool_daily_${ymd}`;
+}
+
+let sessionCount = 0;
+
+async function loadInitialStats() {
+  const localFallback = Number(localStorage.getItem(LOCAL_TOTAL_KEY) || "0");
+  try {
+    const totalRes = await fetch(`${COUNTER_BASE}/get/${TOTAL_KEY}`);
+    if (totalRes.ok) {
+      const data = await totalRes.json();
+      document.getElementById("statTotal").textContent = Math.max(
+        localFallback,
+        Number(data.value || 0)
+      ).toLocaleString();
+    } else {
+      document.getElementById("statTotal").textContent = localFallback.toLocaleString();
+    }
+  } catch (e) {
+    document.getElementById("statTotal").textContent = localFallback.toLocaleString();
+  }
+
+  try {
+    const todayRes = await fetch(`${COUNTER_BASE}/get/${todayKey()}`);
+    if (todayRes.ok) {
+      const data = await todayRes.json();
+      document.getElementById("statToday").textContent = Number(data.value || 0).toLocaleString();
+    } else {
+      document.getElementById("statToday").textContent = "0";
+    }
+  } catch (e) {
+    document.getElementById("statToday").textContent = String(sessionCount);
+  }
+}
+
+async function incrementGlobalCounters() {
+  sessionCount += 1;
+  document.getElementById("statSession").textContent = sessionCount.toLocaleString();
+
+  const localTotal = Number(localStorage.getItem(LOCAL_TOTAL_KEY) || "0") + 1;
+  localStorage.setItem(LOCAL_TOTAL_KEY, String(localTotal));
+
+  try {
+    const totalRes = await fetch(`${COUNTER_BASE}/hit/${TOTAL_KEY}`);
+    if (totalRes.ok) {
+      const data = await totalRes.json();
+      document.getElementById("statTotal").textContent = Math.max(
+        localTotal,
+        Number(data.value || 0)
+      ).toLocaleString();
+    } else {
+      document.getElementById("statTotal").textContent = localTotal.toLocaleString();
+    }
+  } catch (e) {
+    document.getElementById("statTotal").textContent = localTotal.toLocaleString();
+  }
+
+  try {
+    const todayRes = await fetch(`${COUNTER_BASE}/hit/${todayKey()}`);
+    if (todayRes.ok) {
+      const data = await todayRes.json();
+      document.getElementById("statToday").textContent = Number(data.value || 0).toLocaleString();
+    }
+  } catch (e) {
+    document.getElementById("statToday").textContent = sessionCount.toLocaleString();
+  }
+}
+
+syncHeaderPills();
+loadInitialStats();
+</script>
+</body>
+</html>
